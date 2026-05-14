@@ -2,47 +2,16 @@ package model;
 
 import java.util.Objects;
 
-public class Artist {
-    private String fname;
-    private String lname;
-    private String username;
+public class Artist extends User{
     private String style;
     private String medium;
     private boolean isDigital;
-    private String password;
 
-    public Artist(String fname, String lname, String username, String style, String medium, boolean isDigital, String password) {
-        this.fname = fname;
-        this.lname = lname;
-        this.username = username;
+    public Artist(String fname, String lname,String username,String style, String medium, boolean isDigital,String password, String email) {
+        super(fname,lname,username,password,email);
         this.style = style;
         this.medium = medium;
         this.isDigital = isDigital;
-        this.password = password;
-    }
-
-    public String getFname() {
-        return fname;
-    }
-
-    public void setFname(String fname) {
-        this.fname = fname;
-    }
-
-    public String getLname() {
-        return lname;
-    }
-
-    public void setLname(String lname) {
-        this.lname = lname;
-    }
-
-    public String getUsername() {
-        return username;
-    }
-
-    public void setUsername(String username) {
-        this.username = username;
     }
 
     public String getStyle() {
@@ -53,14 +22,6 @@ public class Artist {
         this.style = style;
     }
 
-    public String getMedium() {
-        return medium;
-    }
-
-    public void setMedium(String medium) {
-        this.medium = medium;
-    }
-
     public boolean isDigital() {
         return isDigital;
     }
@@ -69,29 +30,29 @@ public class Artist {
         isDigital = digital;
     }
 
-    public String getPassword() {
-        return password;
+    public String getMedium() {
+        return medium;
     }
 
-    public void setPassword(String password) {
-        this.password = password;
+    public void setMedium(String medium) {
+        this.medium = medium;
     }
 
     @Override
     public String toString(){
-        return "Artist {"+"First Name="+fname+", Last Name="+lname+"\n" + "Username="+username+"\n" + "Style="+style+"\n" + "Medium="+medium+"\n" + "Digital="+isDigital+"\n" + "Password="+password+"}";
+        return "Artist {"+"First Name="+getFname()+", Last Name="+getLname()+"\n" + "Username="+getUsername()+"\n" + "Style="+style+"\n" + "Medium="+medium+"\n" + "Digital="+isDigital+"\n" + "Password="+getPassword()+ "Email="+getEmail()+"}";
     }
     @Override
     public boolean equals(Object object ){
         if (this==object)return true;
         if (!(object instanceof Artist artist))return false;
-        return Objects.equals(fname,artist.fname) && Objects.equals(lname, artist.lname) && Objects.equals(username,artist.username)&& Objects.equals(style,artist.style)&&Objects.equals(medium,artist.medium)&& isDigital == artist.isDigital &&Objects.equals(password,artist.password);
+        return Objects.equals(getFname(),artist.getFname()) && Objects.equals(getLname(), artist.getLname()) && Objects.equals(getUsername(),artist.getUsername())&& Objects.equals(style,artist.style)&&Objects.equals(medium,artist.medium)&& isDigital == artist.isDigital &&Objects.equals(getPassword(),artist.getPassword())&&Objects.equals(getEmail(),artist.getEmail());
 
     }
 
     @Override
     public int hashCode(){
-        return Objects.hash(fname,lname,username,style,medium,isDigital,password);
+        return Objects.hash(getFname(),getLname(),getUsername(),style,medium,isDigital,getPassword(),getEmail());
     }
 }
 
