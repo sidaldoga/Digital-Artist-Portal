@@ -39,7 +39,7 @@ public class Subscriber extends User {
 
     @Override
     public String toString(){
-        return "Artist {"+"First Name="+getFname()+", Last Name="+getLname()+"\n" + "Username="+getUsername()+"\n" + "Address="+address+"\n" + "Subscriptions= "+subscriptionlist+"\n" + "Subscriber Point="+subscriberpoint+"\n" + "Password="+getPassword()+"\"Email="+getEmail()+"}";
+        return "Subscriber {"+"First Name="+getFname()+", Last Name="+getLname()+"\n" + "Username="+getUsername()+"\n" + "Address="+address+"\n" + "Subscriptions= "+subscriptionlist+"\n" + "Subscriber Point="+subscriberpoint+"\n" + "Password="+getPassword()+"\"Email="+getEmail()+"}";
     }
 
     @Override
