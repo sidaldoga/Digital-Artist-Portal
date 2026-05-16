@@ -25,14 +25,18 @@
     - Eine grafische Übersicht, die das monatliche Abonnentenwachstum für Künstler zeigt.
 
 ## Modul und Klassenübersicht
-| Klasse              | Aufgabe                                                                                                                           |
-|:--------------------|:----------------------------------------------------------------------------------------------------------------------------------|
-| **Artist**          | Dies ist eine Modellklasse, die Künstlerprofildaten und die angebotenen Produktkategorien darstellt.                              |
-| **Subscriber**      | Diese Klasse enthält Benutzerinformationen und Adressdaten, die für die physische Zustellung erforderlich sind.                   |
-| **ArtProduct**      | Dies ist eine Basiskategorie, die die Eigenschaften und Produktionszeiträume von Produkten wie Postkarten und Aufklebern umfasst. |
-| **Subscription**    | Dies ist die Geschäftslogikschicht, die die Beziehung zwischen Benutzer und Produkt herstellt und das Kontingentsystem verwaltet. |
-| **DatabaseManager** | Es handelt sich um die Komponente, die für die dauerhafte Speicherung von Daten mittels SQL-Abfragen verantwortlich ist.          |
-| **NetworkManager**  | Koordiniert Kundenanforderungen und sorgt für konfliktfreie Subscription.                                                         |
+| Klasse              | Aufgabe                                                                                                                                                                                           |
+|:--------------------|:--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| **Artist**          | Sie erbt von der Klasse „User“. Sie repräsentiert Künstlerprofildaten und die vom Künstler angebotenen Produkte/Abonnementpakete.                                                                 |
+| **Subscriber**      | Sie erbt von der Klasse „User“. Sie enthält die für die Zustellung physischer Produkte notwendigen Versandadressinformationen und Abonnentendaten.                                                |
+| **ArtProduct**      | Es handelt sich um eine abstrakte Oberklasse (Basisklasse), die die gemeinsamen Attribute (ID, Titel, Preis) aller Produkte enthält.                                                              |
+| **Subscription**    | Dies ist die Geschäftslogikschicht, die die Beziehung zwischen Benutzer und Art Produkt herstellt und das Kontingentsystem verwaltet.                                                             |
+| **User**            | Es handelt sich um die Basisklasse für alle Benutzer im System. Sie enthält grundlegende Mitgliedsinformationen wie Name, E-Mail-Adresse und Passwort.                                            |
+| **PhysicalProduct** | Sie erbt von der Klasse ArtProduct. Sie repräsentiert physische Verpackungen wie Postkarten, Aufkleber und Leinwände mit Attributen wie Gewicht, Größe, Stil, Produkttyp (Enum) und Lagerbestand. |
+| **DigitalProduct**  | Es erbt von der Klasse ArtProduct. Es repräsentiert digitale Kunstwerke mit Attributen wie Download-Link, Dateigröße, Format, Auflösung und Lizenztyp.                                            |
+| **DatabaseManager** | Es handelt sich um die Komponente, die für die dauerhafte Speicherung von Daten mittels SQL-Abfragen verantwortlich ist.                                                                          |
+| **NetworkManager**  | Koordiniert Kundenanforderungen und sorgt für konfliktfreie Subscription.                                                                                                                         |
+
 
 ## 2. EventConnect
 
@@ -64,5 +68,6 @@
 | **AttendanceManager** | Diese Schicht verarbeitet Teilnahmeanfragen, steuert die Kapazität und verhindert Race Conditions aufgrund von Gleichzeitigkeit.                |
 | **DatabaseManager**   | Sie sind für die Erfassung und Aktualisierung von Ereignis und Benutzerdaten in der Datenbank verantwortlich.                                   |
 | **NetworkManager**    | Es verwaltet Datenpakete, indem es die Kommunikation zwischen Server und Client herstellt.                                                                |
+
 
           
