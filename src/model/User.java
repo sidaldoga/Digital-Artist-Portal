@@ -2,7 +2,7 @@ package model;
 
 import java.util.Objects;
 
-public class User {
+public abstract class User {
     private String fname;
     private String lname;
     private String username;
@@ -60,19 +60,19 @@ public class User {
 
     @Override
     public String toString(){
-        return "User {"+"First Name="+fname+", Last Name="+lname+"\n" + "Username="+username+"\n" +  "Password="+password+"\n" + "Email="+email+" }";
+        return "User {"+"First Name="+fname+", Last Name="+lname+"\n" + "Username="+username+"\n" +  "Email="+email+" }";
     }
     @Override
     public boolean equals(Object object ){
         if (this==object)return true;
         if (!(object instanceof User user))return false;
-        return Objects.equals(fname,user.fname) && Objects.equals(lname, user.lname) && Objects.equals(username,user.username)&&Objects.equals(password,user.password) &&Objects.equals(email,user.email);
+        return Objects.equals(email,user.email);
 
     }
 
     @Override
     public int hashCode(){
-        return Objects.hash(fname,lname,username,password,email);
+        return Objects.hash(email);
     }
 }
 

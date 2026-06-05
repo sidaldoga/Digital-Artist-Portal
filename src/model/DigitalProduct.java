@@ -3,35 +3,27 @@ package model;
 import java.util.Objects;
 
 public class DigitalProduct extends ArtProduct {
-    private String style;
+    private ArtStyle style;
     private String downloadURL;
-    private float fileSizeMb;
+    private double fileSizeMb;
     private String fileExtension;
     private DigProductType digProductType;
 
-    public DigitalProduct(String id, String name, String description, float basePrice, String artistId, String style, String downloadURL, float fileSizeMb, String fileExtension, String style1, DigProductType digProductType) {
+    public DigitalProduct(String id, String name, String description, float basePrice, String artistId, ArtStyle style, DigProductType digProductType, String fileExtension, double fileSizeMb, String downloadURL) {
         super(id, name, description, basePrice, artistId);
         this.style = style;
-        this.downloadURL = downloadURL;
-        this.fileSizeMb = fileSizeMb;
-        this.fileExtension = fileExtension;
         this.digProductType = digProductType;
+        this.fileExtension = fileExtension;
+        this.fileSizeMb = fileSizeMb;
+        this.downloadURL = downloadURL;
     }
 
-    public String getStyle() {
+    public ArtStyle getStyle() {
         return style;
     }
 
-    public void setStyle(String style) {
+    public void setStyle(ArtStyle style) {
         this.style = style;
-    }
-
-    public DigProductType getDigProductType() {
-        return digProductType;
-    }
-
-    public void setDigProductType(DigProductType digProductType) {
-        this.digProductType = digProductType;
     }
 
     public String getDownloadURL() {
@@ -42,11 +34,11 @@ public class DigitalProduct extends ArtProduct {
         this.downloadURL = downloadURL;
     }
 
-    public float getFileSizeMb() {
+    public double getFileSizeMb() {
         return fileSizeMb;
     }
 
-    public void setFileSizeMb(float fileSizeMb) {
+    public void setFileSizeMb(double fileSizeMb) {
         this.fileSizeMb = fileSizeMb;
     }
 
@@ -56,6 +48,14 @@ public class DigitalProduct extends ArtProduct {
 
     public void setFileExtension(String fileExtension) {
         this.fileExtension = fileExtension;
+    }
+
+    public DigProductType getDigProductType() {
+        return digProductType;
+    }
+
+    public void setDigProductType(DigProductType digProductType) {
+        this.digProductType = digProductType;
     }
 
     @Override

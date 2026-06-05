@@ -4,15 +4,15 @@ import java.util.List;
 import java.util.Objects;
 
 public class Subscriber extends User {
-    private String address;
+    private Address address;
     private List<Artist> subscriptionlist;
     private int subscriberpoint = 0;
 
-    public String getAddress() {
+    public Address getAddress() {
         return address;
     }
 
-    public void setAddress(String address) {
+    public void setAddress(Address address) {
         this.address = address;
     }
 
