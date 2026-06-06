@@ -6,16 +6,24 @@ import java.util.Objects;
 public class Subscription {
     private int id;
     private Subscriber subscriber;
-    private ArtProduct product;
+    private Artist artist;
     private LocalDate startdate;
     private boolean isActive;
 
-    public Subscription(int id, Subscriber subscriber, ArtProduct product) {
+    public Subscription(int id, Subscriber subscriber, Artist artist) {
         this.id = id;
         this.subscriber = subscriber;
-        this.product = product;
+        this.artist = artist;
         this.startdate = LocalDate.now();
         this.isActive = true;
+    }
+
+    public Subscription(int id, Subscriber subscriber, Artist artist, LocalDate startdate, boolean isActive) {
+        this.id = id;
+        this.subscriber = subscriber;
+        this.artist = artist;
+        this.startdate = startdate;
+        this.isActive = isActive;
     }
 
     public int getId() {
@@ -34,16 +42,20 @@ public class Subscription {
         this.subscriber = subscriber;
     }
 
-    public ArtProduct getProduct() {
-        return product;
+    public Artist getArtist() {
+        return artist;
     }
 
-    public void setProduct(ArtProduct product) {
-        this.product = product;
+    public void setArtist(Artist artist) {
+        this.artist = artist;
     }
 
     public LocalDate getStartdate() {
         return startdate;
+    }
+
+    public void setStartdate(LocalDate startdate) {
+        this.startdate = startdate;
     }
 
     public boolean isActive() {
@@ -55,21 +67,32 @@ public class Subscription {
     }
 
     @Override
-    public String toString(){
-        return "Subscription {"+"Id="+id+", Subscriber="+subscriber+"\n" + "Product="+product+"\n" + "Start Date="+startdate+"\n" + "IsActive="+isActive+"}";
+    public String toString() {
+        String subscriberName = (subscriber != null) ? subscriber.getUsername() : "null";
+        String artistName = (artist != null) ? artist.getUsername() : "null";
+
+        return "Subscription {" +
+                "Id=" + id +
+                ", Subscriber=" + subscriberName +
+                ", Artist=" + artistName +
+                ", Start Date=" + startdate +
+                ", IsActive=" + isActive +
+                '}';
     }
 
     @Override
-    public boolean equals(Object object ){
-        if (this==object)return true;
-        if (!(object instanceof Subscription subscription))return false;
-        return Objects.equals(id,subscription.id) && Objects.equals(subscriber, subscription.subscriber) && Objects.equals(product,subscription.product)&&Objects.equals(startdate,subscription.startdate) &&Objects.equals(isActive,subscription.isActive);
-
+    public boolean equals(Object object) {
+        if (this == object) return true;
+        if (!(object instanceof Subscription subscription)) return false;
+        return id == subscription.id &&
+                isActive == subscription.isActive &&
+                Objects.equals(subscriber, subscription.subscriber) &&
+                Objects.equals(artist, subscription.artist) &&
+                Objects.equals(startdate, subscription.startdate);
     }
 
     @Override
-    public int hashCode(){
-        return Objects.hash(id,subscriber,product,startdate,isActive);
+    public int hashCode() {
+        return Objects.hash(id, subscriber, artist, startdate, isActive);
     }
-
 }

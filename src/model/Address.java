@@ -3,12 +3,21 @@ package model;
 import java.util.Objects;
 
 public class Address {
+    private int id;
     private String street;
     private String city;
     private String zipCode;
     private String country;
 
-    public Address (String street, String city, String zipCode, String country) {
+    public Address(int id, String street, String city, String zipCode, String country) {
+        this.id = id;
+        this.street = street;
+        this.city = city;
+        this.zipCode = zipCode;
+        this.country = country;
+    }
+
+    public Address(String street, String city, String zipCode, String country) {
         this.street = street;
         this.city = city;
         this.zipCode = zipCode;
@@ -53,11 +62,14 @@ public class Address {
     }
 
     @Override
-    public boolean equals(Object object ){
-        if (this==object)return true;
-        if (!(object instanceof Address address))return false;
-        return Objects.equals(street,address.street) && Objects.equals(city,address.city) && Objects.equals(zipCode,address.zipCode) && Objects.equals(country,address.country);
-
+    public boolean equals(Object object) {
+        if (this == object) return true;
+        if (!(object instanceof Address address)) return false;
+        return id == address.id &&
+                Objects.equals(street, address.street) &&
+                Objects.equals(city, address.city) &&
+                Objects.equals(zipCode, address.zipCode) &&
+                Objects.equals(country, address.country);
     }
 
     @Override

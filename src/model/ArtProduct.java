@@ -2,26 +2,26 @@ package model;
 
 import java.util.Objects;
 
-public class ArtProduct {
-    private String id;
+public abstract class ArtProduct {
+    private int id;
     private String name;
     private String description;
-    private float basePrice;
-    private String artistId;
+    private double basePrice;
+    private Artist artist;
 
-    public ArtProduct(String id, String name, String description, float basePrice, String artistId) {
+    public ArtProduct(int id, String name, String description, double basePrice, Artist artist) {
         this.id = id;
         this.name = name;
         this.description = description;
         this.basePrice = basePrice;
-        this.artistId = artistId;
+        this.artist = artist;
     }
 
-    public String getId() {
+    public int getId() {
         return id;
     }
 
-    public void setId(String id) {
+    public void setId(int id) {
         this.id = id;
     }
 
@@ -41,38 +41,45 @@ public class ArtProduct {
         this.description = description;
     }
 
-    public float getBasePrice() {
+    public double getBasePrice() {
         return basePrice;
     }
 
-    public void setBasePrice(float basePrice) {
+    public void setBasePrice(double basePrice) {
         this.basePrice = basePrice;
     }
 
-    public String getArtistId() {
-        return artistId;
-    }
+    public Artist getArtist() { return artist; }
+    
+    public void setArtist(Artist artist) { this.artist = artist; }
 
-    public void setArtistId(String artistId) {
-        this.artistId = artistId;
+    @Override
+    public String toString() {
+        String artistName = (artist != null) ? artist.getUsername() : "null";
+
+        return "ArtProduct {" +
+                "Id=" + id +
+                ", Name=" + name +
+                "\nDescription=" + description +
+                "\nBase Price=" + basePrice +
+                "\nArtist=" + artistName +
+                "}";
     }
 
     @Override
-    public String toString(){
-        return "ArtProduct {"+"Id="+id+", Name="+name+"\n" + "Description="+description+"\n" + "Base Price="+basePrice+"\n" + "Artist="+artistId+"}";
-    }
-
-    @Override
-    public boolean equals(Object object ){
-        if (this==object)return true;
-        if (!(object instanceof ArtProduct artproduct))return false;
-        return Objects.equals(id,artproduct.id) && Objects.equals(name, artproduct.name) && Objects.equals(description,artproduct.description)&&Objects.equals(basePrice,artproduct.basePrice) &&Objects.equals(artistId,artproduct.artistId);
-
+    public boolean equals(Object object) {
+        if (this == object) return true;
+        if (!(object instanceof ArtProduct artproduct)) return false;
+        return id == artproduct.id &&
+                Double.compare(artproduct.basePrice, basePrice) == 0 &&
+                Objects.equals(name, artproduct.name) &&
+                Objects.equals(description, artproduct.description) &&
+                Objects.equals(artist, artproduct.artist);
     }
 
     @Override
     public int hashCode(){
-        return Objects.hash(id,name,description,basePrice,artistId);
+        return Objects.hash(id,name,description,basePrice,artist);
     }
 
 

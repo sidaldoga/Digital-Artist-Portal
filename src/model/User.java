@@ -3,6 +3,7 @@ package model;
 import java.util.Objects;
 
 public abstract class User {
+    private int id;
     private String fname;
     private String lname;
     private String username;
@@ -15,6 +16,23 @@ public abstract class User {
         this.username = username;
         this.password = password;
         this.email = email;
+    }
+
+    public User(int id, String fname, String lname, String username, String password, String email) {
+        this.id = id;
+        this.fname = fname;
+        this.lname = lname;
+        this.username = username;
+        this.password = password;
+        this.email = email;
+    }
+
+    public int getId(){
+        return id;
+    }
+
+    public void setId(int id) {
+        this.id = id;
     }
 
     public String getFname() {
@@ -62,17 +80,19 @@ public abstract class User {
     public String toString(){
         return "User {"+"First Name="+fname+", Last Name="+lname+"\n" + "Username="+username+"\n" +  "Email="+email+" }";
     }
+
     @Override
     public boolean equals(Object object ){
-        if (this==object)return true;
-        if (!(object instanceof User user))return false;
-        return Objects.equals(email,user.email);
-
+        if (this == object) return true;
+        if (!(object instanceof User user)) return false;
+        return id == user.id
+                && Objects.equals(username, user.username)
+                && Objects.equals(email, user.email);
     }
 
     @Override
     public int hashCode(){
-        return Objects.hash(email);
+        return Objects.hash(id, username, email);
     }
 }
 

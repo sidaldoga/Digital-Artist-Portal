@@ -5,4 +5,6 @@ public enum DigProductType {
     POSTCARD,
     STICKER,
     COMMISSIONED,
+    WALLPAPER,
+
 }

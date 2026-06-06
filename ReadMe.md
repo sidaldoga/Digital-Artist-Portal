@@ -8,7 +8,7 @@
 
 **Motivation:** Mein Ziel ist es, Künstlern über eine zentrale digitale Plattform ein regelmäßiges Einkommensmodell und eine begrenzte Mittelzuweisung zu ermöglichen.
 
-## Geplänte Funktionalitäten
+## Geplante Funktionalitäten
 
 - Must Have:
     - Dauerhafte Speicherung von Künstlerprofilen, Produkttypen (Postkarten, Aufkleber usw.) und Abonnenteninformationen.
@@ -25,49 +25,124 @@
     - Eine grafische Übersicht, die das monatliche Abonnentenwachstum für Künstler zeigt.
 
 ## Modul und Klassenübersicht
-| Klasse              | Aufgabe                                                                                                                                                                                           |
-|:--------------------|:--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
-| **Artist**          | Sie erbt von der Klasse „User“. Sie repräsentiert Künstlerprofildaten und die vom Künstler angebotenen Produkte/Abonnementpakete.                                                                 |
-| **Subscriber**      | Sie erbt von der Klasse „User“. Sie enthält die für die Zustellung physischer Produkte notwendigen Versandadressinformationen und Abonnentendaten.                                                |
-| **ArtProduct**      | Es handelt sich um eine abstrakte Oberklasse (Basisklasse), die die gemeinsamen Attribute (ID, Titel, Preis) aller Produkte enthält.                                                              |
-| **Subscription**    | Dies ist die Geschäftslogikschicht, die die Beziehung zwischen Benutzer und Art Produkt herstellt und das Kontingentsystem verwaltet.                                                             |
-| **User**            | Es handelt sich um die Basisklasse für alle Benutzer im System. Sie enthält grundlegende Mitgliedsinformationen wie Name, E-Mail-Adresse und Passwort.                                            |
-| **PhysicalProduct** | Sie erbt von der Klasse ArtProduct. Sie repräsentiert physische Verpackungen wie Postkarten, Aufkleber und Leinwände mit Attributen wie Gewicht, Größe, Stil, Produkttyp (Enum) und Lagerbestand. |
-| **DigitalProduct**  | Es erbt von der Klasse ArtProduct. Es repräsentiert digitale Kunstwerke mit Attributen wie Download-Link, Dateigröße, Format, Auflösung und Lizenztyp.                                            |
-| **DatabaseManager** | Es handelt sich um die Komponente, die für die dauerhafte Speicherung von Daten mittels SQL-Abfragen verantwortlich ist.                                                                          |
-| **NetworkManager**  | Koordiniert Kundenanforderungen und sorgt für konfliktfreie Subscription.                                                                                                                         |
+| Klasse                 | Aufgabe                                                                                                                                                                                           |
+|:-----------------------|:--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| **Artist**             | Sie erbt von der Klasse „User“. Sie repräsentiert Künstlerprofildaten und die vom Künstler angebotenen Produkte/Abonnementpakete.                                                                 |
+| **Subscriber**         | Sie erbt von der Klasse „User“. Sie enthält die für die Zustellung physischer Produkte notwendigen Versandadressinformationen und Abonnentendaten.                                                |
+| **ArtProduct**         | Es handelt sich um eine abstrakte Oberklasse (Basisklasse), die die gemeinsamen Attribute (ID, Titel, Preis) aller Produkte enthält.                                                              |
+| **Subscription**       | Dies ist die Geschäftslogikschicht, die die Beziehung zwischen einem Subscriber und einem Artist herstellt und das Duplikat-Abonnement-System verwaltet.                                          |
+| **User**               | Es handelt sich um die Basisklasse für alle Benutzer im System. Sie enthält grundlegende Mitgliedsinformationen wie Name, E-Mail-Adresse und Passwort.                                            |
+| **PhysicalProduct**    | Sie erbt von der Klasse ArtProduct. Sie repräsentiert physische Verpackungen wie Postkarten, Aufkleber und Leinwände mit Attributen wie Gewicht, Größe, Stil, Produkttyp (Enum) und Lagerbestand. |
+| **DigitalProduct**     | Es erbt von der Klasse ArtProduct. Es repräsentiert digitale Kunstwerke mit Attributen wie Download-Link, Dateigröße, Dateiformat, Kunststil und digitalem Produkttyp.                            |
+| **NetworkManager**     | Architektur Skeleton für die Netzwerkkommunikation. Enthält `startServer()` / `stopServer()` sowie `handleSubscriptionRequest()`, das jedoch aktuell leer ist keine Thread Logik implementiert.   |
+| **UserDAO**            | Kapselt CRUD-Operationen für Benutzer, inkl. Authentifizierungs-Logik.                                                                                                                            |
+| **ArtistDAO**          | Verwaltet die spezialisierten Daten und Details für Künstler.                                                                                                                                     |
+| **SubscriberDAO**      | Verwaltet die spezifischen Daten für Subscriber und deren Profile.                                                                                                                                |
+| **SubscriptionDAO**    | Realisiert relationale Abfragen für Abonnements und sorgt für Duplikatsvermeidung.                                                                                                                |
+| **ArtProductDAO**      | Basis-CRUD für alle Produkttypen und deren relationale Zuweisungen.                                                                                                                               |
+| **PhysicalProductDAO** | Verwaltet spezifische Details für physische Waren und Lagerbestände.                                                                                                                              |
+| **DigitalProductDAO**  | Verwaltet spezifische Daten für digitale Downloads und Links.                                                                                                                                     |
+| **AddressDAO**         | Verwaltet die CRUD-Operationen für die Adressdaten der Subscriber.                                                                                                                                |
+| **DimensionsDAO**      | Kapselt die Datenbankzugriffe für physische Produktabmessungen.                                                                                                                                   |
+| **DatabaseConnection** | Verwaltet den Verbindungsaufbau zur lokalen SQLite-Datenbankdatei.                                                                                                                                |
+| **ArtStyle**           | Enum für Kunststile: `REALISM`, `MINIMALISM`, `SURREALISM`, `FANTASY`, `CYBERPUNK`, `WHIMSICAL`.                                                                                                  |
+| **ProductType**        | Enum für physische Produkttypen: `CANVAS`, `PAPER`, `POSTCARD`, `STICKER`.                                                                                                                        |
+| **MediumType**         | Enum für verwendete Materialien: `OIL_PAINTING`, `CHARCHOAL`, `WATERCOLOR`, `PASTEL`, `PENCIL`.                                                                                                   |
+| **DigProductType**     | Enum für digitale Produkttypen: `POSTER`, `POSTCARD`, `STICKER`, `COMMISSIONED`, `WALLPAPER`.                                                                                                     |
+| **PasswordHasher**     | Utility-Klasse für SHA-256 Passwort-Hashing und Verifikation.                                                                                                                                     |
 
+## Datenstruktur
 
-## 2. EventConnect
+Die Anwendung verwendet eine lokale SQLite Datenbank, um Projektdaten dauerhaft zu speichern. Tabellenstrukturen, Schlüssel und relationale Links sind wie folgt strukturiert:
 
-**Hauptaufgabe:** Es handelt sich um eine Plattform, auf der Nutzer Sport- oder gesellschaftliche Veranstaltungen erstellen und an diesen Veranstaltungen innerhalb einer begrenzten Anzahl von Orten teilnehmen können.
+### 1. Existierende Tabellen und gespeicherte Informationen
 
-**Zielgruppe:** Es bietet einen Treffpunkt für aktive Nutzer, die in der Nähe voneinander wohnen und mit Menschen in Kontakt treten möchten, die gemeinsame Interessen teilen.
+* **`users`** (Zentrale Tabelle für alle Benutzer)
+  * `id`: Primary Key (INTEGER, AUTOINCREMENT)
+  * `fname`: Vorname (TEXT, NOT NULL)
+  * `lname`: Nachname (TEXT, NOT NULL)
+  * `username`: Eindeutiger Benutzername für Authentifizierung (TEXT, UNIQUE, NOT NULL)
+  * `password_hash`: Passwort (TEXT, NOT NULL)
+  * `email`: E-Mail-Adresse (TEXT, NOT NULL)
+  * `role`: Benutzertyp wie 'ARTIST' oder 'SUBSCRIBER' (TEXT)
+  * `address`: Abonnenten Adresse (TEXT)
+  * `subscriber_point`: Punkte von Abonnenten (INTEGER)
 
-**Motivation:** Mein Ziel ist es, sicherzustellen, dass die begrenzte Kapazität populärer Veranstaltungen so bewältigt wird, dass die Datenkonsistenz unter dem Druck hoher gleichzeitiger Nachfrage nicht beeinträchtigt wird, und dabei die Prinzipien der Nebenläufigkeit anzuwenden.
+* **`artist_details`** (Spezifische Profildaten für Künstler)
+  * `user_id`: Primary Key & Foreign Key (INTEGER, verweist auf `users(id)`)
+  * `is_digital`: Type des Künstlers Art (INTEGER)
 
-## Geplänte Funktionalitäten
+* **`subscriber_details`** (Spezifische Profildaten für Abonnenten)
+  * `user_id`: Primary Key & Foreign Key (INTEGER, verweist auf `users(id)`)
+  * `address_text`: Versandadresse des Abonnenten als Freitext (TEXT)
+  * `subscriber_point`: Punkte von Abonnenten (INTEGER)
 
-- Must Have:
-    - Veranstaltungsdetails (Ort, Zeit, Kapazität) und Teilnehmerlisten werden dauerhaft gespeichert.
-    - Die Prozesse zur gemeinsamen Nutzung von Veranstaltungen und zur Teilnahme daran werden über das Netzwerk abgewickelt.
-    - Überwachung der maximal zulässigen Teilnehmerzahl bei Veranstaltungen und Schließung der Anmeldungen, sobald diese Zahl erreicht ist.
+* **`addresses`** (Verwaltung der Versandinformationen)
+  * `id`: Primary Key (INTEGER, AUTOINCREMENT)
+  * `street`: Straße und Hausnummer (TEXT)
+  * `city`: Stadt (TEXT)
+  * `zip_code`: Postleitzahl (TEXT)
+  * `country`: Land (TEXT)
 
-- Should Have:
-    - Nebenläufigkeit: Gleichzeitige Teilnahmeanfragen konfliktfrei verwalten.
-    - GUI: Eine Benutzeroberfläche, auf der Veranstaltungen über eine Stadtkarte oder eine Listenansicht angezeigt werden können, sowie eine Schaltfläche zur Teilnahme sind enthalten.
+* **`art_products`** (Basisinformationen aller Kunstprodukte)
+  * `id`: Primary Key (INTEGER, AUTOINCREMENT)
+  * `name`: Titel des Werks (TEXT, NOT NULL)
+  * `description`: Beschreibung (TEXT)
+  * `base_price`: Basispreis (REAL, NOT NULL)
+  * `artist_id`: Künstler-Referenz (TEXT, NOT NULL, verweist konzeptionell auf `users(id)`)
 
-- Nice to Have:
-    - Veranstaltungen nach Art (Sport, Unterhaltung usw.) oder nach Stadt/Region auflisten.
+* **`subscriptions`** (Beziehung zwischen Abonnenten und Künstlern)
+  * `id`: Primary Key (INTEGER, AUTOINCREMENT)
+  * `subscriber_id`: Foreign Key (INTEGER, verweist auf `users(id)`)
+  * `artist_id`: Foreign Key (INTEGER, verweist auf `users(id)`)
+  * `start_date`: Beginn des Abonnements (TEXT)
+  * `is_active`: Aktivitätsstatus (INTEGER)
+  * *Constraint:* `UNIQUE(subscriber_id, artist_id)`  verhindert doppelte Abonnements desselben Subscribers beim selben Artist
+  
+* **`dimensions`** (Abmessungen für physische Produkte)
+  * `id`: Primary Key (INTEGER, AUTOINCREMENT)
+  * `width`: Breite des Produkts (REAL)
+  * `height`: Höhe des Produkts (REAL)
+  * `depth`: Tiefe des Produkts (REAL)
+  
+* **`digital_products`** ()
+  * `product_id`:Primary Key & Foreign Key (INTEGER, verweist auf `art_products(id)`)
+  * `style`: Kunststil des digitalen Werks (TEXT)
+  * `download_url`: Sicherer Link zum Herunterladen (TEXT)
+  * `file_size_mb`: Dateigröße in Megabyte (REAL)
+  * `file_extension`:Dateiformat  (TEXT)
+  * `dig_product_type`: Produkttyp wie 'POSTER', 'POSTCARD'  (TEXT)
+  
+* **`physical_products`** ()
+  * `product_id`: Primary Key & Foreign Key (INTEGER, verweist auf `art_products(id)`)
+  * `style`: Stil des physischen Werks (TEXT)
+  * `dimensions`: Dimensions (TEXT)
+  * `weight`: Gewicht des Produkts für den Versand (REAL)
+  * `stock`: Aktueller Lagerbestand (INTEGER)
+  * `medium`: Verwendetes Material wie 'PASTEL', 'OIL_PAINTING', 'CHARCOAL' (TEXT) 
+  * `product_type`: Produkttyp als Enum wie 'POSTCARD', 'STICKER', 'CANVAS', 'PAPER' (TEXT)
 
-## Modul und Klassenübersicht
-| Klasse                | Aufgabe                                                                                                                                         |
-|:----------------------|:------------------------------------------------------------------------------------------------------------------------------------------------|
-| **Event**             | Dieses Modell erfasst den Titel der Veranstaltung, den Ort, die Uhrzeit und die maximale/verfügbare Teilnehmerzahl.                             |
-| **User**              | Dieser Kurs enthält die Profilinformationen der Teilnehmer und eine Liste der Veranstaltungen, für die sie angemeldet sind.                     |
-| **AttendanceManager** | Diese Schicht verarbeitet Teilnahmeanfragen, steuert die Kapazität und verhindert Race Conditions aufgrund von Gleichzeitigkeit.                |
-| **DatabaseManager**   | Sie sind für die Erfassung und Aktualisierung von Ereignis und Benutzerdaten in der Datenbank verantwortlich.                                   |
-| **NetworkManager**    | Es verwaltet Datenpakete, indem es die Kommunikation zwischen Server und Client herstellt.                                                                |
+---
 
+### 2. Beziehungen zwischen den Tabellen (Relations)
 
-          
+Die folgenden Beziehungen sind im System definiert. 
+
+* **`users` zu `art_products` (1:n)**
+  * Ein Künstler (`ARTIST`) kann mehrere Kunstprodukte erstellen. Die Zuordnung erfolgt über die Spalte `artist_id` in `art_products`. 
+* **`users` (als Subscriber) zu `subscriptions` (1:n)**
+  * Ein Abonnent (`SUBSCRIBER`) kann mehrere Abonnements bei unterschiedlichen Künstlern abschließen. Jeder Datensatz in `subscriptions` verweist über `subscriber_id` auf genau einen Benutzer mit der Rolle 'SUBSCRIBER'.
+
+* **`users` (als Artist) zu `subscriptions` (1:n)**
+  * Ein Künstler (`ARTIST`) kann von vielen verschiedenen Abonnenten abonniert werden. Jedes Abonnement in `subscriptions` ist über `artist_id` mit dem entsprechenden Künstler verknüpft.
+
+* **`users` zu `artist_details` (1:1)**
+  *  Spezialisierung (Vererbung auf Datenbankebene). Für jeden Benutzer mit der Rolle 'ARTIST' existiert genau ein Eintrag in `artist_details`.
+
+* **`users` zu `subscriber_details` (1:1)**
+  *  Analog zur Künstlerspezialisierung enthält diese Tabelle die erweiterten Profildaten für Abonnenten (Adresstext, Bonuspunkte).
+
+* **`art_products` zu `physical_products` (1:1)**
+  *  Spezialisierung der abstrakten Basisklasse für physische Güter.
+* **`art_products` zu `digital_products` (1:1)**
+  *  Spezialisierung der abstrakten Basisklasse für digitale Güter. 

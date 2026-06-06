@@ -9,8 +9,8 @@ public class DigitalProduct extends ArtProduct {
     private String fileExtension;
     private DigProductType digProductType;
 
-    public DigitalProduct(String id, String name, String description, float basePrice, String artistId, ArtStyle style, DigProductType digProductType, String fileExtension, double fileSizeMb, String downloadURL) {
-        super(id, name, description, basePrice, artistId);
+    public DigitalProduct(int id, String name, String description, double basePrice, Artist artist, ArtStyle style, DigProductType digProductType, String fileExtension, double fileSizeMb, String downloadURL) {
+        super(id, name, description, basePrice, artist);
         this.style = style;
         this.digProductType = digProductType;
         this.fileExtension = fileExtension;
@@ -60,19 +60,33 @@ public class DigitalProduct extends ArtProduct {
 
     @Override
     public String toString(){
-        return " {"+"ID="+getId()+", Name="+getName()+"\n" + "Description="+getDescription()+"\n" + "Price="+getBasePrice()+"\n" + "Artist= "+getArtistId()+"\n" + "Style="+style+"\n" + "DownloadUrl="+downloadURL+"\n" + "FileSizeMb="+fileSizeMb+ "FileExtension="+fileExtension+"Digital Product Type="+digProductType+"}";
+        String artistInfo = (getArtist() != null) ? getArtist().getUsername() : "null";
+
+        return " {"+"ID="+getId()+", Name="+getName()+"\n"
+                + "Description="+getDescription()+"\n"
+                + "Price="+getBasePrice()+"\n"
+                + "Artist= "+ artistInfo +"\n"
+                + "Style="+style+"\n"
+                + "DownloadUrl="+downloadURL+"\n"
+                + "FileSizeMb="+fileSizeMb+ " FileExtension="+fileExtension+" Digital Product Type="+digProductType+"}";
     }
 
     @Override
     public boolean equals(Object object ){
-        if (this==object)return true;
-        if (!(object instanceof DigitalProduct digitalproduct))return false;
-        return Objects.equals(getId(),digitalproduct.getId()) && Objects.equals(getName(), digitalproduct.getName()) && Objects.equals(getDescription(),digitalproduct.getDescription())&& Objects.equals(getBasePrice(), digitalproduct.getBasePrice()) && Objects.equals(getArtistId(), digitalproduct.getArtistId()) && Objects.equals(style,digitalproduct.style)&&Objects.equals(downloadURL,digitalproduct.downloadURL)&& Objects.equals(fileSizeMb,digitalproduct.fileSizeMb) && Objects.equals(fileExtension,digitalproduct.fileExtension)&& Objects.equals(digProductType,digitalproduct.digProductType);
+        if (this == object) return true;
+        if (!(object instanceof DigitalProduct digitalproduct)) return false;
 
+        if (!super.equals(object)) return false;
+
+        return Double.compare(digitalproduct.fileSizeMb, fileSizeMb) == 0
+                && style == digitalproduct.style
+                && Objects.equals(downloadURL, digitalproduct.downloadURL)
+                && Objects.equals(fileExtension, digitalproduct.fileExtension)
+                && digProductType == digitalproduct.digProductType;
     }
 
     @Override
     public int hashCode(){
-        return Objects.hash(getId(),getName(),getDescription(),getBasePrice(),getArtistId(),style,downloadURL,fileSizeMb,fileExtension,digProductType);
+        return Objects.hash(super.hashCode(), style, downloadURL, fileSizeMb, fileExtension, digProductType);
     }
 }

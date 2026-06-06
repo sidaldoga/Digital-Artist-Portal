@@ -1,4 +1,6 @@
-package model;
+package network;
+
+import model.Subscription;
 
 public class NetworkManager {
 

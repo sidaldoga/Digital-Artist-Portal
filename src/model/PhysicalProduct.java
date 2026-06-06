@@ -10,8 +10,8 @@ public class PhysicalProduct extends ArtProduct {
     private MediumType medium;
     private ProductType productType;
 
-    public PhysicalProduct(int id, String name, String description, double basePrice, String artistId, ArtStyle style, ProductType productType, MediumType medium, int stock, double weight, Dimensions dimensionsCm) {
-        super(id, name, description, basePrice, artistId);
+    public PhysicalProduct(int id, String name, String description, double basePrice, Artist artist, ArtStyle style, ProductType productType, MediumType medium, int stock, double weight, Dimensions dimensionsCm) {
+        super(id, name, description, basePrice, artist);
         this.style = style;
         this.productType = productType;
         this.medium = medium;
@@ -71,19 +71,33 @@ public class PhysicalProduct extends ArtProduct {
 
     @Override
     public String toString(){
-        return " {"+"ID="+getId()+", Name="+getName()+"\n" + "Description="+getDescription()+"\n" + "Price="+getBasePrice()+"\n" + "Artist= "+getArtistId()+"\n" + "Style="+style+"\n" + "Dimensions(Cm)="+dimensionsCm+"\"Weight="+weight+"Stock="+stock+"Product Type="+productType+"Medium Type="+medium+"}";
+        String artistInfo = (getArtist() != null) ? getArtist().getUsername() : "null";
+
+        return " {"+"ID="+getId()+", Name="+getName()+"\n"
+                + "Description="+getDescription()+"\n"
+                + "Price="+getBasePrice()+"\n"
+                + "Artist= "+ artistInfo +"\n"
+                + "Style="+style+"\n"
+                + "Dimensions(Cm)="+dimensionsCm+" Weight="+weight+" Stock="+stock+" Product Type="+productType+" Medium Type="+medium+"}";
     }
 
     @Override
     public boolean equals(Object object ){
-        if (this==object)return true;
-        if (!(object instanceof PhysicalProduct physicalproduct))return false;
-        return Objects.equals(getId(),physicalproduct.getId()) && Objects.equals(getName(), physicalproduct.getName()) && Objects.equals(getDescription(),physicalproduct.getDescription())&& Objects.equals(getBasePrice(), physicalproduct.getBasePrice()) && Objects.equals(getArtistId(), physicalproduct.getArtistId()) && Objects.equals(style,physicalproduct.style)&&Objects.equals(dimensionsCm,physicalproduct.dimensionsCm)&& Objects.equals(weight,physicalproduct.weight) && Objects.equals(stock,physicalproduct.stock)&& Objects.equals(productType,physicalproduct.productType) && Objects.equals(medium,physicalproduct.medium);
+        if (this == object) return true;
+        if (!(object instanceof PhysicalProduct physicalproduct)) return false;
 
+        if (!super.equals(object)) return false;
+
+        return stock == physicalproduct.stock
+                && Double.compare(physicalproduct.weight, weight) == 0
+                && style == physicalproduct.style
+                && Objects.equals(dimensionsCm, physicalproduct.dimensionsCm)
+                && productType == physicalproduct.productType
+                && medium == physicalproduct.medium;
     }
 
     @Override
     public int hashCode(){
-        return Objects.hash(getId(),getName(),getDescription(),getBasePrice(),getArtistId(),style,dimensionsCm,weight,stock,productType,medium);
+        return Objects.hash(super.hashCode(), style, dimensionsCm, weight, stock, productType, medium);
     }
 }
