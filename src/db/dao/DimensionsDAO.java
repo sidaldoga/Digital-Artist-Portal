@@ -2,6 +2,7 @@ package db.dao;
 
 import db.DatabaseConnection;
 import model.Dimensions;
+import network.dto.DimensionsDTO;
 
 import java.sql.Connection;
 import java.sql.PreparedStatement;
@@ -31,7 +32,7 @@ public class DimensionsDAO {
         }
     }
 
-    public int insertDimensions(Dimensions dimensions) {
+    public synchronized int insertDimensions(Dimensions dimensions) {
         String sql = "INSERT INTO dimensions (width, height, depth) VALUES (?, ?, ?);";
 
         try (Connection conn = DatabaseConnection.getConnection();
@@ -56,7 +57,7 @@ public class DimensionsDAO {
         return -1;
     }
 
-    public void updateDimensions(int id, Dimensions dimensions) {
+    public synchronized void updateDimensions(int id, Dimensions dimensions) {
         String sql = "UPDATE dimensions SET width = ?, height = ?, depth = ? WHERE id = ?;";
 
         try (Connection conn = DatabaseConnection.getConnection();
@@ -75,7 +76,7 @@ public class DimensionsDAO {
         }
     }
 
-    public void deleteDimensions(int id) {
+    public synchronized void deleteDimensions(int id) {
         String sql = "DELETE FROM dimensions WHERE id = ?;";
 
         try (Connection conn = DatabaseConnection.getConnection();
@@ -101,6 +102,7 @@ public class DimensionsDAO {
 
             if (rs.next()) {
                 return new Dimensions(
+                        rs.getInt("id"),
                         rs.getDouble("width"),
                         rs.getDouble("height"),
                         rs.getDouble("depth")
@@ -116,6 +118,21 @@ public class DimensionsDAO {
         }
     }
 
+    public Dimensions fromDTO(DimensionsDTO dto) {
+        if (dto == null) {
+            return null;
+        }
+        return new Dimensions(dto.getId(), dto.getWidth(), dto.getHeight(), dto.getDepth());
+    }
+
+    public DimensionsDTO toDTO(Dimensions dimensions) {
+        if (dimensions == null) {
+            return null;
+        }
+        return new DimensionsDTO(dimensions.getId(), dimensions.getWidth(),
+                dimensions.getHeight(), dimensions.getDepth());
+    }
+
     public List<Dimensions> getAllDimensions() {
         List<Dimensions> dimensionsList = new ArrayList<>();
         String sql = "SELECT * FROM dimensions;";
@@ -127,6 +144,7 @@ public class DimensionsDAO {
 
             while (rs.next()) {
                 Dimensions dimensions = new Dimensions(
+                        rs.getInt("id"),
                         rs.getDouble("width"),
                         rs.getDouble("height"),
                         rs.getDouble("depth")

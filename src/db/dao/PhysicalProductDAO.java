@@ -6,6 +6,7 @@ import model.ArtStyle;
 import model.ProductType;
 import model.MediumType;
 import model.Dimensions;
+import model.Artist;
 import network.dto.DimensionsDTO;
 import network.dto.PhysicalProductDTO;
 
@@ -18,9 +19,11 @@ import java.util.List;
 
 public class PhysicalProductDAO {
     private final ArtProductDAO artProductDAO;
+    private final DimensionsDAO dimensionsDAO;
 
-    public PhysicalProductDAO(ArtProductDAO artProductDAO) {
+    public PhysicalProductDAO(ArtProductDAO artProductDAO, DimensionsDAO dimensionsDAO) {
         this.artProductDAO = artProductDAO;
+        this.dimensionsDAO = dimensionsDAO;
         createTable();
     }
 
@@ -28,12 +31,13 @@ public class PhysicalProductDAO {
         String sql = "CREATE TABLE IF NOT EXISTS physical_products ("
                 + "product_id INTEGER PRIMARY KEY,"
                 + "style TEXT NOT NULL,"
-                + "dimensions TEXT NOT NULL,"
+                + "dimensions_id INTEGER NOT NULL,"
                 + "weight REAL NOT NULL,"
                 + "stock INTEGER NOT NULL,"
                 + "medium TEXT NOT NULL,"
                 + "product_type TEXT NOT NULL,"
-                + "FOREIGN KEY (product_id) REFERENCES art_products(id) ON DELETE CASCADE"
+                + "FOREIGN KEY (product_id) REFERENCES art_products(id) ON DELETE CASCADE, "
+                + "FOREIGN KEY (dimensions_id) REFERENCES dimensions(id)"
                 + ");";
         try (Connection conn = DatabaseConnection.getConnection();
              Statement stmt = conn.createStatement()) {
@@ -43,17 +47,17 @@ public class PhysicalProductDAO {
         }
     }
 
-    public void insertPhysicalProduct(PhysicalProduct product) {
+    public synchronized int insertPhysicalProduct(PhysicalProduct product) {
+        int dimId = dimensionsDAO.insertDimensions(product.getDimensionsCm());
         artProductDAO.insertArtProduct(product);
 
-        String sql = "INSERT INTO physical_products (product_id, style, dimensions, weight, stock, medium, product_type) VALUES (?, ?, ?, ?, ?, ?, ?);";
-
+        String sql = "INSERT INTO physical_products (product_id, style, dimensions_id, weight, stock, medium, product_type) VALUES (?, ?, ?, ?, ?, ?, ?);";
         try (Connection conn = DatabaseConnection.getConnection();
              PreparedStatement pstmt = conn.prepareStatement(sql)) {
 
             pstmt.setInt(1, product.getId());
             pstmt.setString(2, product.getStyle().name());
-            pstmt.setString(3, product.getDimensionsCm() != null ? product.getDimensionsCm().toString() : "");
+            pstmt.setInt(3, dimId);
             pstmt.setDouble(4, product.getWeight());
             pstmt.setInt(5, product.getStock());
             pstmt.setString(6, product.getMedium().name());
@@ -64,18 +68,18 @@ public class PhysicalProductDAO {
         } catch (SQLException e) {
             System.err.println("Error inserting physical product details: " + e.getMessage());
         }
+        return product.getId();
     }
 
-    public void updatePhysicalProduct(PhysicalProduct product) {
+    public synchronized void updatePhysicalProduct(PhysicalProduct product) {
         artProductDAO.updateArtProduct(product);
 
-        String sql = "UPDATE physical_products SET style = ?, dimensions = ?, weight = ?, stock = ?, medium = ?, product_type = ? WHERE product_id = ?;";
-
+        String sql = "UPDATE physical_products SET style = ?, dimensions_id = ?, weight = ?, stock = ?, medium = ?, product_type = ? WHERE product_id = ?;";
         try (Connection conn = DatabaseConnection.getConnection();
              PreparedStatement pstmt = conn.prepareStatement(sql)) {
 
             pstmt.setString(1, product.getStyle().name());
-            pstmt.setString(2, product.getDimensionsCm() != null ? product.getDimensionsCm().toString() : "");
+            pstmt.setInt(2, product.getDimensionsCm().getId());
             pstmt.setDouble(3, product.getWeight());
             pstmt.setInt(4, product.getStock());
             pstmt.setString(5, product.getMedium().name());
@@ -90,8 +94,21 @@ public class PhysicalProductDAO {
         }
     }
 
-    public void deletePhysicalProduct(int id) {
+    public synchronized void deletePhysicalProduct(int id) {
         artProductDAO.deleteArtProduct(id);
+    }
+
+    public synchronized void updateStock(int productId, int newStock) {
+        String sql = "UPDATE physical_products SET stock = ? WHERE product_id = ?;";
+        try (Connection conn = DatabaseConnection.getConnection();
+             PreparedStatement pstmt = conn.prepareStatement(sql)) {
+
+            pstmt.setInt(1, newStock);
+            pstmt.setInt(2, productId);
+            pstmt.executeUpdate();
+        } catch (SQLException e) {
+            System.err.println("Error updating stock: " + e.getMessage());
+        }
     }
 
     public PhysicalProduct getPhysicalProductById(int id) {
@@ -107,21 +124,8 @@ public class PhysicalProductDAO {
             var rs = pstmt.executeQuery();
 
             if (rs.next()) {
-                String dimStr = rs.getString("dimensions");
-                Dimensions dimObj = null;
-
-                if (dimStr != null && !dimStr.isEmpty() && dimStr.contains("x")) {
-                    try {
-                        String[] parts = dimStr.split("x");
-                        double width = Double.parseDouble(parts[0].replace("cm", "").trim());
-                        double height = Double.parseDouble(parts[1].replace("cm", "").trim());
-                        double depth = Double.parseDouble(parts[2].replace("cm", "").trim());
-
-                        dimObj = new Dimensions(width, height, depth);
-                    } catch (Exception e) {
-                        dimObj = new Dimensions(0.0, 0.0, 0.0);
-                    }
-                }
+                int dimId = rs.getInt("dimensions_id");
+                Dimensions dimObj = dimensionsDAO.getDimensionsById(dimId);
 
                 return new PhysicalProduct(
                         baseProduct.getId(),
@@ -137,7 +141,6 @@ public class PhysicalProductDAO {
                         dimObj
                 );
             } else {
-                System.out.println("No physical details found for product ID: " + id);
                 return null;
             }
 
@@ -146,7 +149,6 @@ public class PhysicalProductDAO {
             return null;
         }
     }
-
     public List<PhysicalProduct> getAllPhysicalProducts() {
         List<PhysicalProduct> products = new ArrayList<>();
         String sql = "SELECT product_id FROM physical_products;";
@@ -167,6 +169,26 @@ public class PhysicalProductDAO {
             System.err.println("Error retrieving all physical products: " + e.getMessage());
             return products;
         }
+    }
+
+    public PhysicalProduct fromDTO(PhysicalProductDTO dto) {
+        if (dto == null) {
+            return null;
+        }
+        Artist artist = new Artist("", "", dto.getArtistUsername(), "", "", false);
+        artist.setId(dto.getArtistId());
+
+        Dimensions dims = null;
+        if (dto.getDimensions() != null) {
+            DimensionsDTO d = dto.getDimensions();
+            dims = new Dimensions(0, d.getWidth(), d.getHeight(), d.getDepth());
+        }
+        return new PhysicalProduct(
+                dto.getId(), dto.getName(), dto.getDescription(), dto.getBasePrice(), artist,
+                ArtStyle.valueOf(dto.getStyle()),
+                ProductType.valueOf(dto.getProductType()),
+                MediumType.valueOf(dto.getMedium()),
+                dto.getStock(), dto.getWeight(), dims);
     }
 
     public PhysicalProductDTO toDTO(PhysicalProduct p) {

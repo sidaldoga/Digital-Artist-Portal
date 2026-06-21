@@ -68,72 +68,44 @@ public class UserDAO {
         return new Address(addrStr, "Unknown", "Unknown", "Unknown");
     }
 
-    public void insertUser(User user, String role) {
-        String sql = "INSERT INTO users (fname, lname, username, password_hash, email, role, address, subscriber_point) VALUES (?,?,?,?,?,?,?,?);";
+    public synchronized void updateUser(User user) {
+        String role = (user instanceof Subscriber) ? "SUBSCRIBER" : "ARTIST";
 
-        try (Connection conn = DatabaseConnection.getConnection();
-             PreparedStatement pstmt = conn.prepareStatement(sql, Statement.RETURN_GENERATED_KEYS)) {
+        boolean changePassword = user.getPassword() != null && !user.getPassword().isEmpty();
 
-            pstmt.setString(1, user.getFname());
-            pstmt.setString(2, user.getLname());
-            pstmt.setString(3, user.getUsername());
-            pstmt.setString(4, user.getPassword());
-            pstmt.setString(5, user.getEmail());
-
-
-            if (user instanceof Subscriber subscriber) {
-                pstmt.setString(7, subscriber.getAddress() != null ? subscriber.getAddress().toString() : null);
-                pstmt.setInt(8, subscriber.getSubscriberpoint());
-            } else {
-                pstmt.setNull(7, java.sql.Types.VARCHAR);
-                pstmt.setInt(8, 0);
-            }
-
-            pstmt.executeUpdate();
-
-            try (var generatedKeys = pstmt.getGeneratedKeys()) {
-                if (generatedKeys.next()) {
-                    user.setId(generatedKeys.getInt(1));
-                }
-            }
-
-            System.out.println("User successfully inserted " + user.getUsername());
-        } catch (SQLException e) {
-            System.err.println("Error inserting user: " + e.getMessage());
-        }
-    }
-
-    public void updateUser(User user, String role) {
-        String sql = "UPDATE users SET fname = ?, lname = ?, username = ?, password_hash = ?, email = ?, role = ?, address = ?, subscriber_point = ? WHERE id = ?;";
+        String sql = changePassword
+                ? "UPDATE users SET fname = ?, lname = ?, username = ?, password_hash = ?, email = ?, role = ?, address = ?, subscriber_point = ? WHERE id = ?;"
+                : "UPDATE users SET fname = ?, lname = ?, username = ?, email = ?, role = ?, address = ?, subscriber_point = ? WHERE id = ?;";
 
         try (Connection conn = DatabaseConnection.getConnection();
              PreparedStatement pstmt = conn.prepareStatement(sql)) {
 
-            pstmt.setString(1, user.getFname());
-            pstmt.setString(2, user.getLname());
-            pstmt.setString(3, user.getUsername());
-            pstmt.setString(4, user.getPassword());
-            pstmt.setString(5, user.getEmail());
-            pstmt.setString(6, role);
+            int idx = 1;
+            pstmt.setString(idx++, user.getFname());
+            pstmt.setString(idx++, user.getLname());
+            pstmt.setString(idx++, user.getUsername());
+            if (changePassword) {
+                pstmt.setString(idx++, util.PasswordHasher.hashPassword(user.getPassword()));
+            }
+            pstmt.setString(idx++, user.getEmail());
+            pstmt.setString(idx++, role);
 
             if (user instanceof Subscriber subscriber) {
-                pstmt.setString(7, subscriber.getAddress() != null ? subscriber.getAddress().toString() : null);
-                pstmt.setInt(8, subscriber.getSubscriberpoint());
+                pstmt.setString(idx++, subscriber.getAddress() != null ? subscriber.getAddress().toString() : null);
+                pstmt.setInt(idx++, subscriber.getSubscriberpoint());
             } else {
-                pstmt.setNull(7, java.sql.Types.VARCHAR);
-                pstmt.setInt(8, 0);
+                pstmt.setNull(idx++, java.sql.Types.VARCHAR);
+                pstmt.setInt(idx++, 0);
             }
-            pstmt.setInt(9, user.getId());
+            pstmt.setInt(idx, user.getId());
 
             pstmt.executeUpdate();
-            System.out.println("User successfully updated: " + user.getUsername());
-
         } catch (SQLException e) {
             System.err.println("Error updating user: " + e.getMessage());
         }
     }
 
-    public void deleteUser(int id) {
+    public synchronized void deleteUser(int id) {
         String sql = "DELETE FROM users WHERE id = ?;";
 
         try (Connection conn = DatabaseConnection.getConnection();
@@ -247,12 +219,12 @@ public class UserDAO {
             return users;
         }
     }
-    public synchronized void registerUser(User user, String password, String role) {
+    public synchronized boolean registerUser(User user, String password, String role) {
         String hashedPassword = util.PasswordHasher.hashPassword(password);
         String sql = "INSERT INTO users (fname, lname, username, password_hash, email, role, address, subscriber_point) VALUES (?,?,?,?,?,?,?,?);";
 
         try (Connection conn = DatabaseConnection.getConnection();
-             PreparedStatement pstmt = conn.prepareStatement(sql)) {
+             PreparedStatement pstmt = conn.prepareStatement(sql, Statement.RETURN_GENERATED_KEYS)) {
 
             pstmt.setString(1, user.getFname());
             pstmt.setString(2, user.getLname());
@@ -269,10 +241,23 @@ public class UserDAO {
                 pstmt.setInt(8, 0);
             }
 
-            pstmt.executeUpdate();
+            int rows = pstmt.executeUpdate();
+            if (rows == 0) {
+                System.err.println("Error registering user: no row inserted for " + user.getUsername());
+                return false;
+            }
+
+            try (var generatedKeys = pstmt.getGeneratedKeys()) {
+                if (generatedKeys.next()) {
+                    user.setId(generatedKeys.getInt(1));
+                }
+            }
+
             System.out.println("User successfully registered: " + user.getUsername());
+            return true;
         } catch (SQLException e) {
             System.err.println("Error registering user: " + e.getMessage());
+            return false;
         }
     }
 
@@ -373,6 +358,31 @@ public class UserDAO {
             System.err.println("Database error during authentication: " + e.getMessage());
         }
         return false;
+    }
+
+    public User fromDTO(UserDTO dto) {
+        if (dto instanceof SubscriberDTO s) {
+            Address addr = null;
+            if (s.getAddress() != null) {
+                addr = new Address(
+                        s.getAddress().getStreet(), s.getAddress().getCity(),
+                        s.getAddress().getZipCode(), s.getAddress().getCountry());
+            }
+            Subscriber sub = new Subscriber(
+                    dto.getFname(), dto.getLname(), dto.getUsername(),
+                    dto.getPassword(), addr, new ArrayList<>(),
+                    s.getSubscriberPoint(), dto.getEmail());
+            sub.setId(dto.getId());
+            return sub;
+        } else if (dto instanceof ArtistDTO a) {
+            Artist artist = new Artist(
+                    dto.getFname(), dto.getLname(), dto.getUsername(),
+                    dto.getPassword(), dto.getEmail(), a.isDigital());
+            artist.setId(dto.getId());
+            return artist;
+        }
+        throw new IllegalArgumentException("Unsupported UserDTO subtype: "
+                + (dto == null ? "null" : dto.getClass().getSimpleName()));
     }
 
     public UserDTO toDTO(User user) {

@@ -14,6 +14,7 @@ import java.util.List;
 public class ArtistDAO {
     private final UserDAO userDAO;
 
+
     public ArtistDAO( UserDAO userDAO) {
         this.userDAO = userDAO;
         createTable();
@@ -35,7 +36,7 @@ public class ArtistDAO {
     }
 
 
-    public void insertArtistDetails(Artist artist) {
+    public synchronized void insertArtistDetails(Artist artist) {
         String sql = "INSERT INTO artist_details (user_id, is_digital) VALUES (?, ?);";
 
         try (Connection conn = DatabaseConnection.getConnection();
@@ -51,7 +52,7 @@ public class ArtistDAO {
     }
 
 
-    public void updateArtistDetails(Artist artist) {
+    public synchronized void updateArtistDetails(Artist artist) {
         String sql = "UPDATE artist_details SET is_digital = ? WHERE user_id = ?;";
 
         try (Connection conn = DatabaseConnection.getConnection();
@@ -119,7 +120,7 @@ public class ArtistDAO {
         return artists;
     }
 
-    public void deleteArtistDetails(int userId) {
+    public synchronized void deleteArtistDetails(int userId) {
         String sql = "DELETE FROM artist_details WHERE user_id = ?;";
         try (Connection conn = DatabaseConnection.getConnection();
              PreparedStatement pstmt = conn.prepareStatement(sql)) {
@@ -130,6 +131,17 @@ public class ArtistDAO {
         } catch (SQLException e) {
             System.err.println("Error deleting artist details: " + e.getMessage());
         }
+    }
+
+    public Artist fromDTO(ArtistDTO dto) {
+        if (dto == null) {
+            return null;
+        }
+        Artist artist = new Artist(
+                dto.getFname(), dto.getLname(), dto.getUsername(),
+                dto.getPassword(), dto.getEmail(), dto.isDigital());
+        artist.setId(dto.getId());
+        return artist;
     }
 
     public ArtistDTO toDTO(Artist artist) {
@@ -143,4 +155,5 @@ public class ArtistDAO {
                 artist.isDigital()
         );
     }
+
 }

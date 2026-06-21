@@ -3,17 +3,26 @@ package model;
 import java.util.Objects;
 
 public class Dimensions {
+    private int id;
     private double width;
     private double height;
     private double depth;
 
-    public Dimensions (double width, double height, double depth){
+    public Dimensions (int id, double width, double height, double depth){
+        this.id = id;
         this.width = width;
         this.height = height;
         this.depth = depth;
     }
 
 
+    public int getId() {
+        return id;
+    }
+
+    public void setId(int id) {
+        this.id = id;
+    }
 
     public double getWidth() {
         return width;

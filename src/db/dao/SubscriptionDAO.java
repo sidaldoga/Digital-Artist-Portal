@@ -40,7 +40,7 @@ public class SubscriptionDAO {
         }
     }
 
-    public void insertSubscription(Subscriber subscriber, Artist artist) {
+    public synchronized void insertSubscription(Subscriber subscriber, Artist artist) {
         if (!isAlreadySubscribed(subscriber.getId(), artist.getId())){
             String sql = "INSERT INTO subscriptions (subscriber_id, artist_id, start_date, is_active) VALUES (?, ?, ?, ?);";
 
@@ -63,7 +63,7 @@ public class SubscriptionDAO {
 
     }
 
-    public void updateSubscription(Subscription subscription) {
+    public synchronized void updateSubscription(Subscription subscription) {
         String sql = "UPDATE subscriptions SET subscriber_id = ?, artist_id = ?, start_date = ?, is_active = ? WHERE id = ?;";
 
         try (Connection conn = DatabaseConnection.getConnection();
@@ -83,7 +83,7 @@ public class SubscriptionDAO {
         }
     }
 
-    public void deleteSubscription(int subscriberId, int artistId) {
+    public synchronized void deleteSubscription(int subscriberId, int artistId) {
         String sql = "DELETE FROM subscriptions WHERE subscriber_id = ? AND artist_id = ?;";
         try (Connection conn = DatabaseConnection.getConnection();
              PreparedStatement pstmt = conn.prepareStatement(sql)) {
@@ -175,6 +175,10 @@ public class SubscriptionDAO {
         return 0;
     }
 
+    public boolean exists(int subscriberId, int artistId) {
+        return isAlreadySubscribed(subscriberId, artistId);
+    }
+
     private boolean isAlreadySubscribed(int subscriberId, int artistId) {
         String sql = "SELECT 1 FROM subscriptions WHERE subscriber_id = ? AND artist_id = ?;";
         try (Connection conn = DatabaseConnection.getConnection();
@@ -190,6 +194,22 @@ public class SubscriptionDAO {
             System.err.println("Error checking subscription existence: " + e.getMessage());
             return false;
         }
+    }
+
+    public Subscription fromDTO(SubscriptionDTO dto) {
+        if (dto == null) {
+            return null;
+        }
+        Subscriber subscriber = new Subscriber("", "", dto.getSubscriberUsername(),
+                "", null, new ArrayList<>(), 0, "");
+        subscriber.setId(dto.getSubscriberId());
+
+        Artist artist = new Artist("", "", dto.getArtistUsername(), "", "", false);
+        artist.setId(dto.getArtistId());
+
+        Subscription subscription = new Subscription(dto.getId(), subscriber, artist);
+        subscription.setActive(dto.isActive());
+        return subscription;
     }
 
     public SubscriptionDTO toDTO(Subscription sub) {

@@ -39,7 +39,7 @@ public class SubscriberDAO {
     }
 
 
-    public void insertSubscriberDetails(Subscriber subscriber) {
+    public synchronized void insertSubscriberDetails(Subscriber subscriber) {
         String sql = "INSERT INTO subscriber_details (user_id, address_text, subscriber_point) VALUES (?, ?, ?);";
 
         try (Connection conn = DatabaseConnection.getConnection();
@@ -57,7 +57,7 @@ public class SubscriberDAO {
     }
 
 
-    public void updateSubscriberDetails(Subscriber subscriber) {
+    public synchronized void updateSubscriberDetails(Subscriber subscriber) {
         String sql = "UPDATE subscriber_details SET address_text = ?, subscriber_point = ? WHERE user_id = ?;";
 
         try (Connection conn = DatabaseConnection.getConnection();
@@ -150,7 +150,7 @@ public class SubscriberDAO {
     }
 
 
-    public void deleteSubscriberDetails(int userId) {
+    public synchronized void deleteSubscriberDetails(int userId) {
         String sql = "DELETE FROM subscriber_details WHERE user_id = ?;";
         try (Connection conn = DatabaseConnection.getConnection();
              PreparedStatement pstmt = conn.prepareStatement(sql)) {
@@ -163,6 +163,23 @@ public class SubscriberDAO {
         }
     }
 
+    public Subscriber fromDTO(SubscriberDTO dto) {
+        if (dto == null) {
+            return null;
+        }
+        Address addr = null;
+        if (dto.getAddress() != null) {
+            AddressDTO a = dto.getAddress();
+            addr = new Address(a.getStreet(), a.getCity(), a.getZipCode(), a.getCountry());
+        }
+        Subscriber subscriber = new Subscriber(
+                dto.getFname(), dto.getLname(), dto.getUsername(),
+                dto.getPassword(), addr, new ArrayList<>(),
+                dto.getSubscriberPoint(), dto.getEmail());
+        subscriber.setId(dto.getId());
+        return subscriber;
+    }
+
     public SubscriberDTO toDTO(Subscriber s) {
         AddressDTO addrDto = (s.getAddress() != null) ?
                 new AddressDTO(s.getAddress().getStreet(), s.getAddress().getCity(), s.getAddress().getZipCode(), s.getAddress().getCountry()) : null;
@@ -170,4 +187,5 @@ public class SubscriberDAO {
         return new SubscriberDTO(s.getId(), s.getFname(), s.getLname(), s.getUsername(),
                 s.getEmail(), "SUBSCRIBER", s.getSubscriberpoint(), addrDto);
     }
+
 }

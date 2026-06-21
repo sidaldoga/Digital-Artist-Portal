@@ -36,7 +36,7 @@ public class ArtProductDAO {
         }
     }
 
-    public void insertArtProduct(ArtProduct artProduct) {
+    public synchronized void insertArtProduct(ArtProduct artProduct) {
         String sql = "INSERT INTO art_products (name, description, base_price, artist_id) VALUES (?, ?, ?, ?);";
 
         try (Connection conn = DatabaseConnection.getConnection();
@@ -60,7 +60,7 @@ public class ArtProductDAO {
         }
     }
 
-    public void updateArtProduct(ArtProduct artProduct) {
+    public synchronized void updateArtProduct(ArtProduct artProduct) {
         String sql = "UPDATE art_products SET name = ?, description = ?, base_price = ?, artist_id = ? WHERE id = ?;";
 
         try (Connection conn = DatabaseConnection.getConnection();
@@ -80,7 +80,7 @@ public class ArtProductDAO {
         }
     }
 
-    public void deleteArtProduct(int id) {
+    public synchronized void deleteArtProduct(int id) {
         String sql = "DELETE FROM art_products WHERE id = ?;";
 
         try (Connection conn = DatabaseConnection.getConnection();
@@ -172,14 +172,27 @@ public class ArtProductDAO {
         }
     }
 
+    public ArtProduct fromDTO(ArtProductDTO dto) {
+        if (dto == null) {
+            return null;
+        }
+        Artist artist = new Artist("", "", dto.getArtistUsername(), "", "", false);
+        artist.setId(dto.getArtistId());
+        return new ArtProduct(dto.getId(), dto.getName(), dto.getDescription(),
+                dto.getBasePrice(), artist) {};
+    }
+
     public ArtProductDTO toDTO(ArtProduct product) {
+        int artistId = (product.getArtist() != null) ? product.getArtist().getId() : 0;
+        String username = (product.getArtist() != null) ? product.getArtist().getUsername() : "Unknown";
+
         return new ArtProductDTO(
                 product.getId(),
-                product.getArtist().getId(),
+                artistId,
                 product.getName(),
                 product.getDescription(),
                 product.getBasePrice(),
-                product.getArtist().getUsername()
+                username
         );
     }
 }

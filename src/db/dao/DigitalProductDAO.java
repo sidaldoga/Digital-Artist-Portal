@@ -3,6 +3,7 @@ package db.dao;
 import db.DatabaseConnection;
 import model.DigitalProduct;
 import model.ArtStyle;
+import model.Artist;
 import model.DigProductType;
 import network.dto.DigitalProductDTO;
 
@@ -40,7 +41,7 @@ public class DigitalProductDAO {
         }
     }
 
-    public void insertDigitalProduct(DigitalProduct product) {
+    public synchronized int insertDigitalProduct(DigitalProduct product) {
         artProductDAO.insertArtProduct(product);
 
         String sql = "INSERT INTO digital_products (product_id, style, download_url, file_size_mb, file_extension, dig_product_type) VALUES (?, ?, ?, ?, ?, ?);";
@@ -60,9 +61,10 @@ public class DigitalProductDAO {
         } catch (SQLException e) {
             System.err.println("Error inserting digital product details: " + e.getMessage());
         }
+        return product.getId();
     }
 
-    public void updateDigitalProduct(DigitalProduct product) {
+    public synchronized void updateDigitalProduct(DigitalProduct product) {
         artProductDAO.updateArtProduct(product);
 
         String sql = "UPDATE digital_products SET style = ?, download_url = ?, file_size_mb = ?, file_extension = ?, dig_product_type = ? WHERE product_id = ?;";
@@ -85,7 +87,7 @@ public class DigitalProductDAO {
         }
     }
 
-    public void deleteDigitalProduct(int id) {
+    public synchronized void deleteDigitalProduct(int id) {
         artProductDAO.deleteArtProduct(id);
     }
 
@@ -144,6 +146,19 @@ public class DigitalProductDAO {
             System.err.println("Error retrieving all digital products: " + e.getMessage());
             return products;
         }
+    }
+
+    public DigitalProduct fromDTO(DigitalProductDTO dto) {
+        if (dto == null) {
+            return null;
+        }
+        Artist artist = new Artist("", "", dto.getArtistUsername(), "", "", false);
+        artist.setId(dto.getArtistId());
+        return new DigitalProduct(
+                dto.getId(), dto.getName(), dto.getDescription(), dto.getBasePrice(), artist,
+                ArtStyle.valueOf(dto.getStyle()),
+                DigProductType.valueOf(dto.getDigProductType()),
+                dto.getFileExtension(), dto.getFileSizeMb(), dto.getDownloadUrl());
     }
 
     public DigitalProductDTO toDTO(DigitalProduct p) {

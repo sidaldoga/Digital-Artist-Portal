@@ -32,7 +32,7 @@ public class AddressDAO {
         }
     }
 
-    public void insertAddress(Address address) {
+    public synchronized void insertAddress(Address address) {
         String sql = "INSERT INTO addresses (street, city, zip_code, country) VALUES (?, ?, ?, ?);";
 
         try (Connection conn = DatabaseConnection.getConnection();
@@ -57,27 +57,23 @@ public class AddressDAO {
         }
     }
 
-    public void updateAddress(int addressId, Address address) {
+    public synchronized void updateAddress(Address address) {
         String sql = "UPDATE addresses SET street = ?, city = ?, zip_code = ?, country = ? WHERE id = ?;";
-
         try (Connection conn = DatabaseConnection.getConnection();
              PreparedStatement pstmt = conn.prepareStatement(sql)) {
-
             pstmt.setString(1, address.getStreet());
             pstmt.setString(2, address.getCity());
             pstmt.setString(3, address.getZipCode());
             pstmt.setString(4, address.getCountry());
-            pstmt.setInt(5, addressId);
-
+            pstmt.setInt(5, address.getId());
             pstmt.executeUpdate();
-            System.out.println("Address successfully updated: " + address.toString());
 
         } catch (SQLException e) {
             System.err.println("Error updating address: " + e.getMessage());
         }
     }
 
-    public void deleteAddress(int id) {
+    public synchronized void deleteAddress(int id) {
         String sql = "DELETE FROM addresses WHERE id = ?;";
 
         try (Connection conn = DatabaseConnection.getConnection();
@@ -143,5 +139,30 @@ public class AddressDAO {
             System.err.println("Error retrieving addresses: " + e.getMessage());
             return addresses;
         }
+    }
+
+    public Address fromDTO(network.dto.AddressDTO dto) {
+        if (dto == null) {
+            return null;
+        }
+        return new Address(
+                dto.getId(),
+                dto.getStreet(),
+                dto.getCity(),
+                dto.getZipCode(),
+                dto.getCountry()
+        );
+    }
+
+    public network.dto.AddressDTO toDTO(Address address) {
+        if (address == null) {
+            return null;
+        }
+        return new network.dto.AddressDTO(
+                address.getStreet(),
+                address.getCity(),
+                address.getZipCode(),
+                address.getCountry()
+        );
     }
 }
