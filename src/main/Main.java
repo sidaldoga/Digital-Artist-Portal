@@ -10,23 +10,19 @@ public class Main {
     public static void main(String[] args) {
         System.out.println("DIGITAL ART PORTAL INITIALIZATION");
 
-        DatabaseConnection dbConnection = DatabaseConnection.getInstance();
+        AddressDAO addressDAO = new AddressDAO();
+        DimensionsDAO dimensionsDAO = new DimensionsDAO();
+        UserDAO userDAO = new UserDAO();
 
-        AddressDAO addressDAO = new AddressDAO(dbConnection);
-        DimensionsDAO dimensionsDAO = new DimensionsDAO(dbConnection);
+        SubscriberDAO subscriberDAO = new SubscriberDAO(userDAO);
+        ArtistDAO artistDAO = new ArtistDAO(userDAO);
 
-        UserDAO userDAO = new UserDAO(dbConnection);
+        ArtProductDAO artProductDAO = new ArtProductDAO(userDAO);
 
 
-        SubscriberDAO subscriberDAO = new SubscriberDAO(dbConnection, userDAO);
-        ArtistDAO artistDAO = new ArtistDAO(dbConnection, userDAO);
-
-        ArtProductDAO artProductDAO = new ArtProductDAO(dbConnection, userDAO);
-
-        PhysicalProductDAO physicalProductDAO = new PhysicalProductDAO(dbConnection, artProductDAO);
-        DigitalProductDAO digitalProductDAO = new DigitalProductDAO(dbConnection, artProductDAO);
-
-        SubscriptionDAO subscriptionDAO = new SubscriptionDAO(dbConnection, userDAO);
+        PhysicalProductDAO physicalProductDAO = new PhysicalProductDAO(artProductDAO, dimensionsDAO);
+        DigitalProductDAO digitalProductDAO = new DigitalProductDAO(artProductDAO);
+        SubscriptionDAO subscriptionDAO = new SubscriptionDAO(userDAO);
 
         try {
             System.out.println("\n Inserting 5 Addresses");
@@ -43,11 +39,11 @@ public class Main {
             addressDAO.insertAddress(addr5);
 
             System.out.println("\n Inserting 5 Dimensions");
-            Dimensions dim1 = new Dimensions(20.0, 30.0, 2.0);
-            Dimensions dim2 = new Dimensions(50.0, 70.0, 5.0);
-            Dimensions dim3 = new Dimensions(10.0, 15.0, 0.5);
-            Dimensions dim4 = new Dimensions(40.0, 40.0, 4.0);
-            Dimensions dim5 = new Dimensions(100.0, 120.0, 10.0);
+            Dimensions dim1 = new Dimensions(0, 20.0, 30.0, 2.0);
+            Dimensions dim2 = new Dimensions(1, 50.0, 70.0, 5.0);
+            Dimensions dim3 = new Dimensions(2, 10.0, 15.0, 0.5);
+            Dimensions dim4 = new Dimensions(3, 40.0, 40.0, 4.0);
+            Dimensions dim5 = new Dimensions(4, 100.0, 120.0, 10.0);
 
             dimensionsDAO.insertDimensions(dim1);
             dimensionsDAO.insertDimensions(dim2);
@@ -130,7 +126,6 @@ public class Main {
             System.err.println("An error occurred during testing: " + e.getMessage());
         } finally {
             System.out.println("\nClosing DB Connection");
-            dbConnection.closeConnection();
         }
         System.out.println("Digital Art Portal Testing Completed Successfully");
     }
