@@ -14,4 +14,10 @@ public class ArtistDTO extends UserDTO implements Serializable {
     public boolean isDigital() {
         return isDigital;
     }
+
+    @Override
+    public String toString() {
+        return "Artist{id=" + getId() + ", username='" + getUsername() + "', fname='" + getFname()
+                + "', lname='" + getLname() + "', email='" + getEmail() + "', isDigital=" + isDigital + "}";
+    }
 }

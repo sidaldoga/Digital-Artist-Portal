@@ -9,6 +9,7 @@ public class UserDTO implements Serializable {
     private String username;
     private String email;
     private String role;
+    private String password;
 
     public UserDTO(int id, String fname, String lname, String username, String email, String role) {
         this.id = id;
@@ -41,5 +42,19 @@ public class UserDTO implements Serializable {
 
     public String getRole() {
         return role;
+    }
+
+    public String getPassword() {
+        return password;
+    }
+
+    public void setPassword(String password) {
+        this.password = password;
+    }
+
+    @Override
+    public String toString() {
+        return "User{id=" + id + ", fname='" + fname + "', lname='" + lname
+                + "', username='" + username + "', email='" + email + "', role='" + role + "'}";
     }
 }

@@ -20,4 +20,11 @@ public class SubscriberDTO extends UserDTO implements Serializable {
     public AddressDTO getAddress() {
         return address;
     }
+
+    @Override
+    public String toString() {
+        return "Subscriber{id=" + getId() + ", username='" + getUsername() + "', fname='" + getFname()
+                + "', lname='" + getLname() + "', email='" + getEmail() + "', subscriberPoint=" + subscriberPoint
+                + ", address=" + address + "}";
+    }
 }

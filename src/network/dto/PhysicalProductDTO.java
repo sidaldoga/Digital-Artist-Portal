@@ -82,4 +82,12 @@ public class PhysicalProductDTO implements Serializable {
     public DimensionsDTO getDimensions() {
         return dimensions;
     }
+
+    @Override
+    public String toString() {
+        return "PhysicalProduct{id=" + id + ", name='" + name + "', basePrice=" + basePrice
+                + ", artistUsername='" + artistUsername + "', style='" + style
+                + "', productType='" + productType + "', medium='" + medium
+                + "', stock=" + stock + ", weight=" + weight + ", dimensions=" + dimensions + "}";
+    }
 }

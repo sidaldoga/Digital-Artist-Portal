@@ -73,4 +73,12 @@ public class DigitalProductDTO implements Serializable {
     public String getDigProductType() {
         return digProductType;
     }
+
+    @Override
+    public String toString() {
+        return "DigitalProduct{id=" + id + ", name='" + name + "', basePrice=" + basePrice
+                + ", artistUsername='" + artistUsername + "', style='" + style
+                + "', digProductType='" + digProductType + "', fileExtension='" + fileExtension
+                + "', fileSizeMb=" + fileSizeMb + ", downloadUrl='" + downloadUrl + "'}";
+    }
 }

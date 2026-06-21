@@ -19,4 +19,9 @@ public class LoginDTO implements Serializable{
     public String getPassword() {
         return password;
     }
+
+    @Override
+    public String toString() {
+        return "Login{username='" + username + "', password=***}";
+    }
 }

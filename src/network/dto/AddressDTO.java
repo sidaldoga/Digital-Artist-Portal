@@ -3,16 +3,29 @@ package network.dto;
 import java.io.Serializable;
 
 public class AddressDTO implements Serializable {
+    private int id;
     private String street;
     private String city;
     private String zipCode;
     private String country;
 
-    public AddressDTO(String street, String country, String zipCode, String city) {
+    public AddressDTO(String street, String city, String zipCode, String country) {
         this.street = street;
-        this.country = country;
-        this.zipCode = zipCode;
         this.city = city;
+        this.zipCode = zipCode;
+        this.country = country;
+    }
+
+    public AddressDTO(int id, String street, String city, String zipCode, String country) {
+        this.id = id;
+        this.street = street;
+        this.city = city;
+        this.zipCode = zipCode;
+        this.country = country;
+    }
+
+    public int getId() {
+        return id;
     }
 
     public String getStreet() {
@@ -29,5 +42,11 @@ public class AddressDTO implements Serializable {
 
     public String getCountry() {
         return country;
+    }
+
+    @Override
+    public String toString() {
+        return "Address{id=" + id + ", street='" + street + "', city='" + city
+                + "', zipCode='" + zipCode + "', country='" + country + "'}";
     }
 }

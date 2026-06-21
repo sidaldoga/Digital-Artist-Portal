@@ -42,4 +42,11 @@ public class ArtProductDTO implements Serializable {
     public String getArtistUsername() {
         return artistUsername;
     }
+
+    @Override
+    public String toString() {
+        return "ArtProduct{id=" + id + ", name='" + name + "', description='" + description
+                + "', basePrice=" + basePrice + ", artistId=" + artistId
+                + ", artistUsername='" + artistUsername + "'}";
+    }
 }

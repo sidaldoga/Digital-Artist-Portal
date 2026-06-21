@@ -43,4 +43,11 @@ public class SubscriptionDTO implements Serializable {
     public boolean isActive() {
         return isActive;
     }
+
+    @Override
+    public String toString() {
+        return "Subscription{id=" + id + ", subscriberId=" + subscriberId
+                + ", subscriberUsername='" + subscriberUsername + "', artistId=" + artistId
+                + ", artistUsername='" + artistUsername + "', isActive=" + isActive + "}";
+    }
 }
