@@ -24,6 +24,98 @@
     - Benachrichtigungen, die Abonnenten über die Veröffentlichung neuer Monatspakete informieren.
     - Eine grafische Übersicht, die das monatliche Abonnentenwachstum für Künstler zeigt.
 
+## Netzwerkarchitektur
+
+Die Anwendung basiert auf einem **Client Server Modell**. Ein zentraler
+`Server` lauscht auf TCP Port `8080` und startet pro eingehender
+Verbindung einen eigenen `ClientHandler` Thread, sodass mehrere Clients
+gleichzeitig bedient werden.
+
+**Zuverlässiger Transport.** Die Kommunikation erfolgt über
+**TCP Sockets**, die eine geordnete und verlustfreie Übertragung
+garantieren  eine Voraussetzung für konsistente Datenbankoperationen.
+
+**Request/Response Muster.** Jeder Austausch nutzt ein typisiertes
+Nachrichtenpaar: Der Client sendet ein `Request`Objekt (`Command`Enum
++ Nutzdaten), der Server antwortet mit einem `Response`Objekt
+  (`Status`Enum + Nutzdaten). Das Protokoll ist dadurch explizit und
+  selbstbeschreibend.
+
+**DTO Schicht.** Es werden **keine** Modellobjekte (`User`, `Artist`,
+`Purchase`,...) direkt über das Netzwerk serialisiert. Jedes wird über
+symmetrische `toDTO`/`fromDTO`Methoden auf ein passendes **Data
+Transfer Object** (`UserDTO`, `ArtistDTO`,...) abgebildet. Das entkoppelt
+den Netzwerkvertrag vom internen Modell und verhindert das Durchsickern
+sensibler Persistenzdetails (z. B. PasswortHashes).
+
+**Deadlock Vermeidung.** Ein `ObjectInputStream` blockiert beim
+Erzeugen, bis er den Header des gegenüberliegenden
+`ObjectOutputStream` gelesen hat. Würden beide Seiten zuerst ihren
+Eingabestrom öffnen, käme es zum Deadlock. Die Hilfsklasse
+`ServerConnection` erzwingt die korrekte Reihenfolge   den
+`ObjectOutputStream` zuerst öffnen und per `flush()` leeren, danach den
+`ObjectInputStream`; der `ClientHandler` verfährt spiegelbildlich. Als
+`AutoCloseable` schließt `ServerConnection` die Verbindung zudem sauber
+mit einem `BYE`Befehl.
+
+## Nebenläufigkeit & Synchronisation
+
+Da jeder Client in einem eigenen Server Thread läuft, müssen
+gleichzeitige Schreibzugriffe auf die gemeinsame SQLiteDatenbank
+serialisiert werden. Dafür dient ein globaler `ReentrantLock`, der über
+`DatabaseLock.WRITE_LOCK` bereitgestellt wird.
+
+Der `ClientHandler` ordnet jeden Befehl über die Menge `WRITE_COMMANDS`
+ein (alle `ADD_*`, `UPDATE_*`, `REMOVE_*`, `REGISTER`, `ADD_PURCHASE`
+usw.). Vor einem Schreibbefehl wird der Lock angefordert und in einem
+`finally`-Block wieder freigegeben. Jeder Schreibbefehl wird so als
+unteilbarer **kritischer Abschnitt** ausgeführt:
+
+      if (isWrite) DatabaseLock.WRITE_LOCK.lock();
+      try {}
+      finally { if (isWrite) DatabaseLock.WRITE_LOCK.unlock(); }
+
+Dies garantiert **Atomarität** auch für mehrstufige
+Lese Ändere Schreibe Abläufe und sichert damit die **Datenintegrität**
+bei simultanem Zugriff. Lesebefehle werden nicht gesperrt und bleiben
+dadurch performant. Ergänzend kapselt `DatabaseLock` die Methoden
+`write(Runnable)` und `write(Supplier<T>)` zum Schutz einzelner Blöcke.
+
+Die kritische gemeinsame Ressource ist ein einzelner Datenbankdatensatz
+(z. B. der Lagerbestand `stock` eines physischen Produkts), auf den
+mehrere Client Threads gleichzeitig schreibend zugreifen können. Ohne
+Synchronisation entsteht eine Race Condition, da sich nebenläufige
+Lese Ändere Schreibe Abläufe verschränken und so einen verlorenen
+Schreibvorgang (Lost Update) bzw. einen Überverkauf erzeugen können. Der
+`DatabaseLock` (ein globaler `ReentrantLock`) serialisiert alle
+Schreibzugriffe zu atomaren kritischen Abschnitten, wodurch der
+`RaceConditionTest` reproduzierbar zeigt, dass der finale Zustand des
+Datensatzes stets konsistent bleibt.
+
+## Race Condition Test
+
+`RaceConditionTest` provoziert eine Schreib Schreib Wettlaufsituation:
+Zwei Threads (`Client-A`, `Client-B`) öffnen je eine eigene Verbindung
+und senden gleichzeitig 25 `UPDATE_USER` Anfragen auf **denselben**
+Datensatz (Benutzer-ID 1).
+
+- **Ohne** Lock verschränken sich die Aktualisierungen, und der Datensatz
+  kann inkonsistente Feldwerte aus beiden Clients enthalten
+  (Lost Update bzw. „torn write").
+- **Mit** aktivem `WRITE_LOCK` läuft jede Aktualisierung als kritischer
+  Abschnitt. Die Zugriffe werden serialisiert, sodass das abschließende
+  `GET_USER` einen in sich konsistenten Datensatz liefert   nie eine
+  Mischung beider Clients.
+
+Dasselbe Prinzip schützt den Kaufvorgang: Da `ADD_PURCHASE` ein
+Schreibbefehl ist, laufen Bestandsprüfung (`stock > 0`) und
+Dekrementierung gemeinsam unter dem Lock. Zwei Käufer können denselben
+physischen Artikel daher nicht gleichzeitig erwerben (kein Überverkauf).
+
+`ConcurrencyTest` ergänzt dies mit 5 Clients, die parallel `PING` und
+`LOGIN` ausführen, und bestätigt die fehlerfreie Verarbeitung
+gleichzeitiger Lesezugriffe.
+
 ## Modul und Klassenübersicht
 | Klasse                    | Aufgabe                                                                                                                                                                                           |
 |:--------------------------|:--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
@@ -169,94 +261,4 @@ Die folgenden Beziehungen sind im System definiert.
 * **`art_products` zu `digital_products` (1:1)**
   *  Spezialisierung der abstrakten Basisklasse für digitale Güter. 
 
-## Netzwerkarchitektur
 
-Die Anwendung basiert auf einem **Client Server Modell**. Ein zentraler
-`Server` lauscht auf TCP Port `8080` und startet pro eingehender
-Verbindung einen eigenen `ClientHandler` Thread, sodass mehrere Clients
-gleichzeitig bedient werden.
-
-**Zuverlässiger Transport.** Die Kommunikation erfolgt über
-**TCP Sockets**, die eine geordnete und verlustfreie Übertragung
-garantieren  eine Voraussetzung für konsistente Datenbankoperationen.
-
-**Request/Response Muster.** Jeder Austausch nutzt ein typisiertes
-Nachrichtenpaar: Der Client sendet ein `Request`Objekt (`Command`Enum
-+ Nutzdaten), der Server antwortet mit einem `Response`Objekt
-(`Status`Enum + Nutzdaten). Das Protokoll ist dadurch explizit und
-selbstbeschreibend.
-
-**DTO Schicht.** Es werden **keine** Modellobjekte (`User`, `Artist`,
-`Purchase`,...) direkt über das Netzwerk serialisiert. Jedes wird über
-symmetrische `toDTO`/`fromDTO`Methoden auf ein passendes **Data
-Transfer Object** (`UserDTO`, `ArtistDTO`,...) abgebildet. Das entkoppelt
-den Netzwerkvertrag vom internen Modell und verhindert das Durchsickern
-sensibler Persistenzdetails (z. B. PasswortHashes).
-
-**Deadlock Vermeidung.** Ein `ObjectInputStream` blockiert beim
-Erzeugen, bis er den Header des gegenüberliegenden
-`ObjectOutputStream` gelesen hat. Würden beide Seiten zuerst ihren
-Eingabestrom öffnen, käme es zum Deadlock. Die Hilfsklasse
-`ServerConnection` erzwingt die korrekte Reihenfolge   den
-`ObjectOutputStream` zuerst öffnen und per `flush()` leeren, danach den
-`ObjectInputStream`; der `ClientHandler` verfährt spiegelbildlich. Als
-`AutoCloseable` schließt `ServerConnection` die Verbindung zudem sauber
-mit einem `BYE`Befehl.
-
-## Nebenläufigkeit & Synchronisation
-
-Da jeder Client in einem eigenen Server Thread läuft, müssen
-gleichzeitige Schreibzugriffe auf die gemeinsame SQLiteDatenbank
-serialisiert werden. Dafür dient ein globaler `ReentrantLock`, der über
-`DatabaseLock.WRITE_LOCK` bereitgestellt wird.
-
-Der `ClientHandler` ordnet jeden Befehl über die Menge `WRITE_COMMANDS`
-ein (alle `ADD_*`, `UPDATE_*`, `REMOVE_*`, `REGISTER`, `ADD_PURCHASE`
-usw.). Vor einem Schreibbefehl wird der Lock angefordert und in einem
-`finally`-Block wieder freigegeben. Jeder Schreibbefehl wird so als
-unteilbarer **kritischer Abschnitt** ausgeführt:
-
-      if (isWrite) DatabaseLock.WRITE_LOCK.lock();
-      try {}
-      finally { if (isWrite) DatabaseLock.WRITE_LOCK.unlock(); }
-
-Dies garantiert **Atomarität** auch für mehrstufige
-Lese Ändere Schreibe Abläufe und sichert damit die **Datenintegrität**
-bei simultanem Zugriff. Lesebefehle werden nicht gesperrt und bleiben
-dadurch performant. Ergänzend kapselt `DatabaseLock` die Methoden
-`write(Runnable)` und `write(Supplier<T>)` zum Schutz einzelner Blöcke.
-
-Die kritische gemeinsame Ressource ist ein einzelner Datenbankdatensatz
-(z. B. der Lagerbestand `stock` eines physischen Produkts), auf den
-mehrere Client Threads gleichzeitig schreibend zugreifen können. Ohne
-Synchronisation entsteht eine Race Condition, da sich nebenläufige
-Lese Ändere Schreibe Abläufe verschränken und so einen verlorenen
-Schreibvorgang (Lost Update) bzw. einen Überverkauf erzeugen können. Der
-`DatabaseLock` (ein globaler `ReentrantLock`) serialisiert alle
-Schreibzugriffe zu atomaren kritischen Abschnitten, wodurch der
-`RaceConditionTest` reproduzierbar zeigt, dass der finale Zustand des
-Datensatzes stets konsistent bleibt.
-
-## Race Condition Test
-
-`RaceConditionTest` provoziert eine Schreib Schreib Wettlaufsituation:
-Zwei Threads (`Client-A`, `Client-B`) öffnen je eine eigene Verbindung
-und senden gleichzeitig 25 `UPDATE_USER` Anfragen auf **denselben**
-Datensatz (Benutzer-ID 1).
-
-- **Ohne** Lock verschränken sich die Aktualisierungen, und der Datensatz
-  kann inkonsistente Feldwerte aus beiden Clients enthalten
-  (Lost Update bzw. „torn write").
-- **Mit** aktivem `WRITE_LOCK` läuft jede Aktualisierung als kritischer
-  Abschnitt. Die Zugriffe werden serialisiert, sodass das abschließende
-  `GET_USER` einen in sich konsistenten Datensatz liefert   nie eine
-  Mischung beider Clients.
-
-Dasselbe Prinzip schützt den Kaufvorgang: Da `ADD_PURCHASE` ein
-Schreibbefehl ist, laufen Bestandsprüfung (`stock > 0`) und
-Dekrementierung gemeinsam unter dem Lock. Zwei Käufer können denselben
-physischen Artikel daher nicht gleichzeitig erwerben (kein Überverkauf).
-
-`ConcurrencyTest` ergänzt dies mit 5 Clients, die parallel `PING` und
-`LOGIN` ausführen, und bestätigt die fehlerfreie Verarbeitung
-gleichzeitiger Lesezugriffe.
