@@ -1,10 +1,13 @@
-package db;
+package db.dao;
 
+import db.DatabaseConnection;
 import model.PhysicalProduct;
 import model.ArtStyle;
 import model.ProductType;
 import model.MediumType;
 import model.Dimensions;
+import network.dto.DimensionsDTO;
+import network.dto.PhysicalProductDTO;
 
 import java.sql.Connection;
 import java.sql.PreparedStatement;
@@ -14,11 +17,9 @@ import java.util.ArrayList;
 import java.util.List;
 
 public class PhysicalProductDAO {
-    private final DatabaseConnection dbConnection;
     private final ArtProductDAO artProductDAO;
 
-    public PhysicalProductDAO(DatabaseConnection dbConnection, ArtProductDAO artProductDAO) {
-        this.dbConnection = dbConnection;
+    public PhysicalProductDAO(ArtProductDAO artProductDAO) {
         this.artProductDAO = artProductDAO;
         createTable();
     }
@@ -34,7 +35,7 @@ public class PhysicalProductDAO {
                 + "product_type TEXT NOT NULL,"
                 + "FOREIGN KEY (product_id) REFERENCES art_products(id) ON DELETE CASCADE"
                 + ");";
-        try (Connection conn = dbConnection.getConnection();
+        try (Connection conn = DatabaseConnection.getConnection();
              Statement stmt = conn.createStatement()) {
             stmt.execute(sql);
         } catch (SQLException e) {
@@ -47,7 +48,7 @@ public class PhysicalProductDAO {
 
         String sql = "INSERT INTO physical_products (product_id, style, dimensions, weight, stock, medium, product_type) VALUES (?, ?, ?, ?, ?, ?, ?);";
 
-        try (Connection conn = dbConnection.getConnection();
+        try (Connection conn = DatabaseConnection.getConnection();
              PreparedStatement pstmt = conn.prepareStatement(sql)) {
 
             pstmt.setInt(1, product.getId());
@@ -70,7 +71,7 @@ public class PhysicalProductDAO {
 
         String sql = "UPDATE physical_products SET style = ?, dimensions = ?, weight = ?, stock = ?, medium = ?, product_type = ? WHERE product_id = ?;";
 
-        try (Connection conn = dbConnection.getConnection();
+        try (Connection conn = DatabaseConnection.getConnection();
              PreparedStatement pstmt = conn.prepareStatement(sql)) {
 
             pstmt.setString(1, product.getStyle().name());
@@ -99,7 +100,7 @@ public class PhysicalProductDAO {
 
         String sql = "SELECT * FROM physical_products WHERE product_id = ?;";
 
-        try (Connection conn = dbConnection.getConnection();
+        try (Connection conn = DatabaseConnection.getConnection();
              PreparedStatement pstmt = conn.prepareStatement(sql)) {
 
             pstmt.setInt(1, id);
@@ -150,7 +151,7 @@ public class PhysicalProductDAO {
         List<PhysicalProduct> products = new ArrayList<>();
         String sql = "SELECT product_id FROM physical_products;";
 
-        try (Connection conn = dbConnection.getConnection();
+        try (Connection conn = DatabaseConnection.getConnection();
              PreparedStatement pstmt = conn.prepareStatement(sql);
              var rs = pstmt.executeQuery()) {
 
@@ -166,5 +167,16 @@ public class PhysicalProductDAO {
             System.err.println("Error retrieving all physical products: " + e.getMessage());
             return products;
         }
+    }
+
+    public PhysicalProductDTO toDTO(PhysicalProduct p) {
+        DimensionsDTO dim = (p.getDimensionsCm() != null) ?
+                new DimensionsDTO(p.getDimensionsCm().getWidth(), p.getDimensionsCm().getHeight(), p.getDimensionsCm().getDepth()) : null;
+
+        return new PhysicalProductDTO(
+                p.getId(), p.getArtist().getId(), p.getName(), p.getDescription(), p.getBasePrice(),
+                p.getArtist().getUsername(), p.getStyle().name(), p.getStock(), p.getWeight(),
+                p.getMedium().name(), p.getProductType().name(), dim
+        );
     }
 }

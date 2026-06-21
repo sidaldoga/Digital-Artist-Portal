@@ -1,8 +1,11 @@
-package db;
+package db.dao;
 
+import db.DatabaseConnection;
 import model.Subscriber;
 import model.Address;
 import model.Artist;
+import network.dto.AddressDTO;
+import network.dto.SubscriberDTO;
 
 import java.sql.Connection;
 import java.sql.PreparedStatement;
@@ -12,11 +15,9 @@ import java.util.ArrayList;
 import java.util.List;
 
 public class SubscriberDAO {
-    private final DatabaseConnection dbConnection;
     private final UserDAO userDAO;
 
-    public SubscriberDAO(DatabaseConnection dbConnection, UserDAO userDAO) {
-        this.dbConnection = dbConnection;
+    public SubscriberDAO(UserDAO userDAO) {
         this.userDAO = userDAO;
         createTable();
     }
@@ -29,7 +30,7 @@ public class SubscriberDAO {
                 + "subscriber_point INTEGER DEFAULT 0,"
                 + "FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE"
                 + ");";
-        try (Connection conn = dbConnection.getConnection();
+        try (Connection conn = DatabaseConnection.getConnection();
              Statement stmt = conn.createStatement()) {
             stmt.execute(sql);
         } catch (SQLException e) {
@@ -41,7 +42,7 @@ public class SubscriberDAO {
     public void insertSubscriberDetails(Subscriber subscriber) {
         String sql = "INSERT INTO subscriber_details (user_id, address_text, subscriber_point) VALUES (?, ?, ?);";
 
-        try (Connection conn = dbConnection.getConnection();
+        try (Connection conn = DatabaseConnection.getConnection();
              PreparedStatement pstmt = conn.prepareStatement(sql)) {
 
             pstmt.setInt(1, subscriber.getId());
@@ -59,7 +60,7 @@ public class SubscriberDAO {
     public void updateSubscriberDetails(Subscriber subscriber) {
         String sql = "UPDATE subscriber_details SET address_text = ?, subscriber_point = ? WHERE user_id = ?;";
 
-        try (Connection conn = dbConnection.getConnection();
+        try (Connection conn = DatabaseConnection.getConnection();
              PreparedStatement pstmt = conn.prepareStatement(sql)) {
 
             pstmt.setString(1, subscriber.getAddress() != null ? subscriber.getAddress().toString() : null);
@@ -79,7 +80,7 @@ public class SubscriberDAO {
 
         String sql = "SELECT * FROM subscriber_details WHERE user_id = ?;";
 
-        try (Connection conn = dbConnection.getConnection();
+        try (Connection conn = DatabaseConnection.getConnection();
              PreparedStatement pstmt = conn.prepareStatement(sql)) {
 
             pstmt.setInt(1, userId);
@@ -132,7 +133,7 @@ public class SubscriberDAO {
         List<Subscriber> subscribers = new ArrayList<>();
         String sql = "SELECT user_id FROM subscriber_details;";
 
-        try (Connection conn = dbConnection.getConnection();
+        try (Connection conn = DatabaseConnection.getConnection();
              PreparedStatement pstmt = conn.prepareStatement(sql);
              var rs = pstmt.executeQuery()) {
 
@@ -151,7 +152,7 @@ public class SubscriberDAO {
 
     public void deleteSubscriberDetails(int userId) {
         String sql = "DELETE FROM subscriber_details WHERE user_id = ?;";
-        try (Connection conn = dbConnection.getConnection();
+        try (Connection conn = DatabaseConnection.getConnection();
              PreparedStatement pstmt = conn.prepareStatement(sql)) {
 
             pstmt.setInt(1, userId);
@@ -160,5 +161,13 @@ public class SubscriberDAO {
         } catch (SQLException e) {
             System.err.println("Error deleting subscriber details: " + e.getMessage());
         }
+    }
+
+    public SubscriberDTO toDTO(Subscriber s) {
+        AddressDTO addrDto = (s.getAddress() != null) ?
+                new AddressDTO(s.getAddress().getStreet(), s.getAddress().getCity(), s.getAddress().getZipCode(), s.getAddress().getCountry()) : null;
+
+        return new SubscriberDTO(s.getId(), s.getFname(), s.getLname(), s.getUsername(),
+                s.getEmail(), "SUBSCRIBER", s.getSubscriberpoint(), addrDto);
     }
 }

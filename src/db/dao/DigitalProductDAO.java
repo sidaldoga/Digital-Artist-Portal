@@ -1,8 +1,10 @@
-package db;
+package db.dao;
 
+import db.DatabaseConnection;
 import model.DigitalProduct;
 import model.ArtStyle;
 import model.DigProductType;
+import network.dto.DigitalProductDTO;
 
 import java.sql.Connection;
 import java.sql.PreparedStatement;
@@ -12,11 +14,9 @@ import java.util.ArrayList;
 import java.util.List;
 
 public class DigitalProductDAO {
-    private final DatabaseConnection dbConnection;
     private final ArtProductDAO artProductDAO;
 
-    public DigitalProductDAO(DatabaseConnection dbConnection, ArtProductDAO artProductDAO) {
-        this.dbConnection = dbConnection;
+    public DigitalProductDAO(ArtProductDAO artProductDAO) {
         this.artProductDAO = artProductDAO;
         createTable();
     }
@@ -32,7 +32,7 @@ public class DigitalProductDAO {
                 + "dig_product_type TEXT NOT NULL,"
                 + "FOREIGN KEY (product_id) REFERENCES art_products(id) ON DELETE CASCADE"
                 + ");";
-        try (Connection conn = dbConnection.getConnection();
+        try (Connection conn = DatabaseConnection.getConnection();
              Statement stmt = conn.createStatement()) {
             stmt.execute(sql);
         } catch (SQLException e) {
@@ -45,7 +45,7 @@ public class DigitalProductDAO {
 
         String sql = "INSERT INTO digital_products (product_id, style, download_url, file_size_mb, file_extension, dig_product_type) VALUES (?, ?, ?, ?, ?, ?);";
 
-        try (Connection conn = dbConnection.getConnection();
+        try (Connection conn = DatabaseConnection.getConnection();
              PreparedStatement pstmt = conn.prepareStatement(sql)) {
 
             pstmt.setInt(1, product.getId());
@@ -67,7 +67,7 @@ public class DigitalProductDAO {
 
         String sql = "UPDATE digital_products SET style = ?, download_url = ?, file_size_mb = ?, file_extension = ?, dig_product_type = ? WHERE product_id = ?;";
 
-        try (Connection conn = dbConnection.getConnection();
+        try (Connection conn = DatabaseConnection.getConnection();
              PreparedStatement pstmt = conn.prepareStatement(sql)) {
 
             pstmt.setString(1, product.getStyle().name());
@@ -95,7 +95,7 @@ public class DigitalProductDAO {
 
         String sql = "SELECT * FROM digital_products WHERE product_id = ?;";
 
-        try (Connection conn = dbConnection.getConnection();
+        try (Connection conn = DatabaseConnection.getConnection();
              PreparedStatement pstmt = conn.prepareStatement(sql)) {
 
             pstmt.setInt(1, id);
@@ -128,7 +128,7 @@ public class DigitalProductDAO {
         List<DigitalProduct> products = new ArrayList<>();
         String sql = "SELECT product_id FROM digital_products;";
 
-        try (Connection conn = dbConnection.getConnection();
+        try (Connection conn = DatabaseConnection.getConnection();
              PreparedStatement pstmt = conn.prepareStatement(sql);
              var rs = pstmt.executeQuery()) {
 
@@ -144,5 +144,13 @@ public class DigitalProductDAO {
             System.err.println("Error retrieving all digital products: " + e.getMessage());
             return products;
         }
+    }
+
+    public DigitalProductDTO toDTO(DigitalProduct p) {
+        return new DigitalProductDTO(
+                p.getId(), p.getArtist().getId(), p.getName(), p.getDescription(), p.getBasePrice(),
+                p.getArtist().getUsername(), p.getStyle().name(), p.getDownloadURL(),
+                p.getFileSizeMb(), p.getFileExtension(), p.getDigProductType().name()
+        );
     }
 }

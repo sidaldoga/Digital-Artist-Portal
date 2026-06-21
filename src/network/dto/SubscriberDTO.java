@@ -1,0 +1,23 @@
+package network.dto;
+
+
+import java.io.Serializable;
+
+public class SubscriberDTO extends UserDTO implements Serializable {
+    private int subscriberPoint;
+    private AddressDTO address;
+
+    public SubscriberDTO(int id, String fname, String lname, String username, String email, String role, int subscriberPoint, AddressDTO address) {
+        super(id, fname, lname, username, email, role);
+        this.subscriberPoint = subscriberPoint;
+        this.address = address;
+    }
+
+    public int getSubscriberPoint() {
+        return subscriberPoint;
+    }
+
+    public AddressDTO getAddress() {
+        return address;
+    }
+}

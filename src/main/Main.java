@@ -1,6 +1,7 @@
 package main;
 
 import db.*;
+import db.dao.*;
 import model.*;
 
 import java.util.ArrayList;

@@ -1,9 +1,10 @@
-package db;
+package db.dao;
 
+import db.DatabaseConnection;
 import model.Artist;
 import model.Subscription;
 import model.Subscriber;
-import model.User;
+import network.dto.SubscriptionDTO;
 
 import java.sql.Connection;
 import java.sql.PreparedStatement;
@@ -13,11 +14,9 @@ import java.util.ArrayList;
 import java.util.List;
 
 public class SubscriptionDAO {
-    private final DatabaseConnection dbConnection;
     private final UserDAO userDAO;
 
-    public SubscriptionDAO(DatabaseConnection dbConnection, UserDAO userDAO) {
-        this.dbConnection = dbConnection;
+    public SubscriptionDAO(UserDAO userDAO) {
         this.userDAO = userDAO;
         createTable();
     }
@@ -33,7 +32,7 @@ public class SubscriptionDAO {
                 + "FOREIGN KEY (subscriber_id) REFERENCES users(id) ON DELETE CASCADE,"
                 + "FOREIGN KEY (artist_id) REFERENCES users(id) ON DELETE CASCADE"
                 + ");";
-        try (Connection conn = dbConnection.getConnection();
+        try (Connection conn = DatabaseConnection.getConnection();
              Statement stmt = conn.createStatement()) {
             stmt.execute(sql);
         } catch (SQLException e) {
@@ -45,7 +44,7 @@ public class SubscriptionDAO {
         if (!isAlreadySubscribed(subscriber.getId(), artist.getId())){
             String sql = "INSERT INTO subscriptions (subscriber_id, artist_id, start_date, is_active) VALUES (?, ?, ?, ?);";
 
-            try (Connection conn = dbConnection.getConnection();
+            try (Connection conn = DatabaseConnection.getConnection();
                  PreparedStatement pstmt = conn.prepareStatement(sql)) {
 
                 pstmt.setInt(1, subscriber.getId());
@@ -67,7 +66,7 @@ public class SubscriptionDAO {
     public void updateSubscription(Subscription subscription) {
         String sql = "UPDATE subscriptions SET subscriber_id = ?, artist_id = ?, start_date = ?, is_active = ? WHERE id = ?;";
 
-        try (Connection conn = dbConnection.getConnection();
+        try (Connection conn = DatabaseConnection.getConnection();
              PreparedStatement pstmt = conn.prepareStatement(sql)) {
 
             pstmt.setInt(1, subscription.getSubscriber().getId());
@@ -86,7 +85,7 @@ public class SubscriptionDAO {
 
     public void deleteSubscription(int subscriberId, int artistId) {
         String sql = "DELETE FROM subscriptions WHERE subscriber_id = ? AND artist_id = ?;";
-        try (Connection conn = dbConnection.getConnection();
+        try (Connection conn = DatabaseConnection.getConnection();
              PreparedStatement pstmt = conn.prepareStatement(sql)) {
 
             pstmt.setInt(1, subscriberId);
@@ -101,7 +100,7 @@ public class SubscriptionDAO {
     public Subscription getSubscriptionById(int id) {
         String sql = "SELECT * FROM subscriptions WHERE id = ?;";
 
-        try (Connection conn = dbConnection.getConnection();
+        try (Connection conn = DatabaseConnection.getConnection();
              PreparedStatement pstmt = conn.prepareStatement(sql)) {
 
             pstmt.setInt(1, id);
@@ -134,7 +133,7 @@ public class SubscriptionDAO {
         List<Subscription> subscriptions = new ArrayList<>();
         String sql = "SELECT * FROM subscriptions;";
 
-        try (Connection conn = dbConnection.getConnection();
+        try (Connection conn = DatabaseConnection.getConnection();
              PreparedStatement pstmt = conn.prepareStatement(sql)) {
 
             var rs = pstmt.executeQuery();
@@ -161,7 +160,7 @@ public class SubscriptionDAO {
 
     public int getSubscriptionCountForArtist(int artistId) {
         String sql = "SELECT COUNT(*) FROM subscriptions WHERE artist_id = ? AND is_active = 1;";
-        try (Connection conn = dbConnection.getConnection();
+        try (Connection conn = DatabaseConnection.getConnection();
              PreparedStatement pstmt = conn.prepareStatement(sql)) {
 
             pstmt.setInt(1, artistId);
@@ -178,7 +177,7 @@ public class SubscriptionDAO {
 
     private boolean isAlreadySubscribed(int subscriberId, int artistId) {
         String sql = "SELECT 1 FROM subscriptions WHERE subscriber_id = ? AND artist_id = ?;";
-        try (Connection conn = dbConnection.getConnection();
+        try (Connection conn = DatabaseConnection.getConnection();
              PreparedStatement pstmt = conn.prepareStatement(sql)) {
 
             pstmt.setInt(1, subscriberId);
@@ -191,5 +190,14 @@ public class SubscriptionDAO {
             System.err.println("Error checking subscription existence: " + e.getMessage());
             return false;
         }
+    }
+
+    public SubscriptionDTO toDTO(Subscription sub) {
+        return new SubscriptionDTO(
+                sub.getId(),
+                sub.getSubscriber().getId(), sub.getSubscriber().getUsername(),
+                sub.getArtist().getId(), sub.getArtist().getUsername(),
+                sub.isActive()
+        );
     }
 }

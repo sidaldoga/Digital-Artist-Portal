@@ -1,5 +1,6 @@
-package db;
+package db.dao;
 
+import db.DatabaseConnection;
 import model.Address;
 
 import java.sql.Connection;
@@ -10,10 +11,8 @@ import java.util.ArrayList;
 import java.util.List;
 
 public class AddressDAO {
-    private final DatabaseConnection dbConnection;
 
-    public AddressDAO(DatabaseConnection dbConnection) {
-        this.dbConnection = dbConnection;
+    public AddressDAO() {
         createTable();
     }
 
@@ -25,7 +24,7 @@ public class AddressDAO {
                 + "zip_code TEXT NOT NULL,"
                 + "country TEXT NOT NULL"
                 + ");";
-        try (Connection conn = dbConnection.getConnection();
+        try (Connection conn = DatabaseConnection.getConnection();
              Statement stmt = conn.createStatement()) {
             stmt.execute(sql);
         } catch (SQLException e) {
@@ -36,7 +35,7 @@ public class AddressDAO {
     public void insertAddress(Address address) {
         String sql = "INSERT INTO addresses (street, city, zip_code, country) VALUES (?, ?, ?, ?);";
 
-        try (Connection conn = dbConnection.getConnection();
+        try (Connection conn = DatabaseConnection.getConnection();
              PreparedStatement pstmt = conn.prepareStatement(sql, Statement.RETURN_GENERATED_KEYS)) {
 
             pstmt.setString(1, address.getStreet());
@@ -48,6 +47,7 @@ public class AddressDAO {
 
             try (var generatedKeys = pstmt.getGeneratedKeys()) {
                 if (generatedKeys.next()) {
+                    address.setId(generatedKeys.getInt(1));
                 }
             }
 
@@ -60,7 +60,7 @@ public class AddressDAO {
     public void updateAddress(int addressId, Address address) {
         String sql = "UPDATE addresses SET street = ?, city = ?, zip_code = ?, country = ? WHERE id = ?;";
 
-        try (Connection conn = dbConnection.getConnection();
+        try (Connection conn = DatabaseConnection.getConnection();
              PreparedStatement pstmt = conn.prepareStatement(sql)) {
 
             pstmt.setString(1, address.getStreet());
@@ -80,7 +80,7 @@ public class AddressDAO {
     public void deleteAddress(int id) {
         String sql = "DELETE FROM addresses WHERE id = ?;";
 
-        try (Connection conn = dbConnection.getConnection();
+        try (Connection conn = DatabaseConnection.getConnection();
              PreparedStatement pstmt = conn.prepareStatement(sql)) {
 
             pstmt.setInt(1, id);
@@ -95,7 +95,7 @@ public class AddressDAO {
     public Address getAddressById(int id) {
         String sql = "SELECT * FROM addresses WHERE id = ?;";
 
-        try (Connection conn = dbConnection.getConnection();
+        try (Connection conn = DatabaseConnection.getConnection();
              PreparedStatement pstmt = conn.prepareStatement(sql)) {
 
             pstmt.setInt(1, id);
@@ -123,7 +123,7 @@ public class AddressDAO {
         List<Address> addresses = new ArrayList<>();
         String sql = "SELECT * FROM addresses;";
 
-        try (Connection conn = dbConnection.getConnection();
+        try (Connection conn = DatabaseConnection.getConnection();
              PreparedStatement pstmt = conn.prepareStatement(sql)) {
 
             var rs = pstmt.executeQuery();

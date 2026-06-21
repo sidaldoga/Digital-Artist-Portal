@@ -1,5 +1,6 @@
-package db;
+package db.dao;
 
+import db.DatabaseConnection;
 import model.Dimensions;
 
 import java.sql.Connection;
@@ -10,10 +11,8 @@ import java.util.ArrayList;
 import java.util.List;
 
 public class DimensionsDAO {
-    private final DatabaseConnection dbConnection;
 
-    public DimensionsDAO(DatabaseConnection dbConnection) {
-        this.dbConnection = dbConnection;
+    public DimensionsDAO() {
         createTable();
     }
 
@@ -24,7 +23,7 @@ public class DimensionsDAO {
                 + "height REAL NOT NULL,"
                 + "depth REAL NOT NULL"
                 + ");";
-        try (Connection conn = dbConnection.getConnection();
+        try (Connection conn = DatabaseConnection.getConnection();
              Statement stmt = conn.createStatement()) {
             stmt.execute(sql);
         } catch (SQLException e) {
@@ -35,7 +34,7 @@ public class DimensionsDAO {
     public int insertDimensions(Dimensions dimensions) {
         String sql = "INSERT INTO dimensions (width, height, depth) VALUES (?, ?, ?);";
 
-        try (Connection conn = dbConnection.getConnection();
+        try (Connection conn = DatabaseConnection.getConnection();
              PreparedStatement pstmt = conn.prepareStatement(sql, Statement.RETURN_GENERATED_KEYS)) {
 
             pstmt.setDouble(1, dimensions.getWidth());
@@ -60,7 +59,7 @@ public class DimensionsDAO {
     public void updateDimensions(int id, Dimensions dimensions) {
         String sql = "UPDATE dimensions SET width = ?, height = ?, depth = ? WHERE id = ?;";
 
-        try (Connection conn = dbConnection.getConnection();
+        try (Connection conn = DatabaseConnection.getConnection();
              PreparedStatement pstmt = conn.prepareStatement(sql)) {
 
             pstmt.setDouble(1, dimensions.getWidth());
@@ -79,7 +78,7 @@ public class DimensionsDAO {
     public void deleteDimensions(int id) {
         String sql = "DELETE FROM dimensions WHERE id = ?;";
 
-        try (Connection conn = dbConnection.getConnection();
+        try (Connection conn = DatabaseConnection.getConnection();
              PreparedStatement pstmt = conn.prepareStatement(sql)) {
 
             pstmt.setInt(1, id);
@@ -94,7 +93,7 @@ public class DimensionsDAO {
     public Dimensions getDimensionsById(int id) {
         String sql = "SELECT * FROM dimensions WHERE id = ?;";
 
-        try (Connection conn = dbConnection.getConnection();
+        try (Connection conn = DatabaseConnection.getConnection();
              PreparedStatement pstmt = conn.prepareStatement(sql)) {
 
             pstmt.setInt(1, id);
@@ -121,7 +120,7 @@ public class DimensionsDAO {
         List<Dimensions> dimensionsList = new ArrayList<>();
         String sql = "SELECT * FROM dimensions;";
 
-        try (Connection conn = dbConnection.getConnection();
+        try (Connection conn = DatabaseConnection.getConnection();
              PreparedStatement pstmt = conn.prepareStatement(sql)) {
 
             var rs = pstmt.executeQuery();

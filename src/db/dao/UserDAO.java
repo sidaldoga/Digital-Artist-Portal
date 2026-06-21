@@ -1,22 +1,23 @@
-package db;
+package db.dao;
 
+import db.DatabaseConnection;
 import model.User;
 import model.Subscriber;
 import model.Artist;
 import model.Address;
+import network.dto.AddressDTO;
+import network.dto.ArtistDTO;
+import network.dto.SubscriberDTO;
+import network.dto.UserDTO;
+import util.PasswordHasher;
 
-import java.sql.Connection;
-import java.sql.PreparedStatement;
-import java.sql.SQLException;
-import java.sql.Statement;
+import java.sql.*;
 import java.util.ArrayList;
 import java.util.List;
 
 public class UserDAO {
-    private final DatabaseConnection dbConnection;
 
-    public UserDAO(DatabaseConnection dbConnection) {
-        this.dbConnection = dbConnection;
+    public UserDAO() {
         createTable();
     }
 
@@ -32,7 +33,7 @@ public class UserDAO {
                 + "address TEXT,"
                 + "subscriber_point INTEGER DEFAULT 0"
                 + ");";
-        try (Connection conn = dbConnection.getConnection();
+        try (Connection conn = DatabaseConnection.getConnection();
              Statement stmt = conn.createStatement()) {
             stmt.execute(sql);
         } catch (SQLException e) {
@@ -70,7 +71,7 @@ public class UserDAO {
     public void insertUser(User user, String role) {
         String sql = "INSERT INTO users (fname, lname, username, password_hash, email, role, address, subscriber_point) VALUES (?,?,?,?,?,?,?,?);";
 
-        try (Connection conn = dbConnection.getConnection();
+        try (Connection conn = DatabaseConnection.getConnection();
              PreparedStatement pstmt = conn.prepareStatement(sql, Statement.RETURN_GENERATED_KEYS)) {
 
             pstmt.setString(1, user.getFname());
@@ -105,7 +106,7 @@ public class UserDAO {
     public void updateUser(User user, String role) {
         String sql = "UPDATE users SET fname = ?, lname = ?, username = ?, password_hash = ?, email = ?, role = ?, address = ?, subscriber_point = ? WHERE id = ?;";
 
-        try (Connection conn = dbConnection.getConnection();
+        try (Connection conn = DatabaseConnection.getConnection();
              PreparedStatement pstmt = conn.prepareStatement(sql)) {
 
             pstmt.setString(1, user.getFname());
@@ -135,7 +136,7 @@ public class UserDAO {
     public void deleteUser(int id) {
         String sql = "DELETE FROM users WHERE id = ?;";
 
-        try (Connection conn = dbConnection.getConnection();
+        try (Connection conn = DatabaseConnection.getConnection();
              PreparedStatement pstmt = conn.prepareStatement(sql)) {
 
             pstmt.setInt(1, id);
@@ -150,7 +151,7 @@ public class UserDAO {
     public User getUserById(int id) {
         String sql = "SELECT * FROM users WHERE id = ?;";
 
-        try (Connection conn = dbConnection.getConnection();
+        try (Connection conn = DatabaseConnection.getConnection();
              PreparedStatement pstmt = conn.prepareStatement(sql)) {
 
             pstmt.setInt(1, id);
@@ -202,7 +203,7 @@ public class UserDAO {
         List<User> users = new ArrayList<>();
         String sql = "SELECT * FROM users;";
 
-        try (Connection conn = dbConnection.getConnection();
+        try (Connection conn = DatabaseConnection.getConnection();
              PreparedStatement pstmt = conn.prepareStatement(sql)) {
 
             var rs = pstmt.executeQuery();
@@ -246,11 +247,11 @@ public class UserDAO {
             return users;
         }
     }
-    public void registerUser(User user, String password, String role) {
+    public synchronized void registerUser(User user, String password, String role) {
         String hashedPassword = util.PasswordHasher.hashPassword(password);
         String sql = "INSERT INTO users (fname, lname, username, password_hash, email, role, address, subscriber_point) VALUES (?,?,?,?,?,?,?,?);";
 
-        try (Connection conn = dbConnection.getConnection();
+        try (Connection conn = DatabaseConnection.getConnection();
              PreparedStatement pstmt = conn.prepareStatement(sql)) {
 
             pstmt.setString(1, user.getFname());
@@ -277,7 +278,7 @@ public class UserDAO {
 
     public boolean isUsernameTaken(String username) {
         String sql = "SELECT COUNT(*) FROM users WHERE username = ?;";
-        try (Connection conn = dbConnection.getConnection();
+        try (Connection conn = DatabaseConnection.getConnection();
              PreparedStatement pstmt = conn.prepareStatement(sql)) {
 
             pstmt.setString(1, username);
@@ -293,9 +294,15 @@ public class UserDAO {
     }
 
     public User loginUser(String username, String password) {
+
+        if (!authenticate(username, password)) {
+            System.out.println("Login failed for: " + username);
+            return null;
+        }
+
         String sql = "SELECT * FROM users WHERE username = ?;";
 
-        try (Connection conn = dbConnection.getConnection();
+        try (Connection conn = DatabaseConnection.getConnection();
              PreparedStatement pstmt = conn.prepareStatement(sql)) {
 
             pstmt.setString(1, username);
@@ -324,7 +331,9 @@ public class UserDAO {
                         );
                         subscriber.setId(rs.getInt("id"));
                         return subscriber;
-                    } else {
+                    }
+
+                    else {
                         Artist artist = new Artist(
                                 rs.getString("fname"),
                                 rs.getString("lname"),
@@ -344,5 +353,43 @@ public class UserDAO {
 
         System.out.println("Login failed for username or password.");
         return null;
+    }
+
+    public synchronized boolean authenticate(String username, String password) {
+        String sql = "SELECT password_hash FROM users WHERE username = ?";
+
+        try (Connection conn = DatabaseConnection.getConnection();
+             PreparedStatement pstmt = conn.prepareStatement(sql)) {
+
+            pstmt.setString(1, username);
+            ResultSet rs = pstmt.executeQuery();
+
+            if (rs.next()) {
+                String storedHash = rs.getString("password_hash");
+                return PasswordHasher.checkPassword(password, storedHash);
+            }
+
+        } catch (SQLException e) {
+            System.err.println("Database error during authentication: " + e.getMessage());
+        }
+        return false;
+    }
+
+    public UserDTO toDTO(User user) {
+        if (user instanceof Subscriber s) {
+            AddressDTO addrDto = null;
+            if (s.getAddress() != null) {
+                addrDto = new AddressDTO(
+                        s.getAddress().getStreet(), s.getAddress().getCity(),
+                        s.getAddress().getZipCode(), s.getAddress().getCountry()
+                );
+            }
+            return new SubscriberDTO(s.getId(), s.getFname(), s.getLname(), s.getUsername(),
+                    s.getEmail(), "SUBSCRIBER", s.getSubscriberpoint(), addrDto);
+        } else if (user instanceof Artist a) {
+            return new ArtistDTO(a.getId(), a.getFname(), a.getLname(), a.getUsername(),
+                    a.getEmail(), "ARTIST", a.isDigital());
+        }
+        return new UserDTO(user.getId(), user.getFname(), user.getLname(), user.getUsername(), user.getEmail(), "USER");
     }
 }

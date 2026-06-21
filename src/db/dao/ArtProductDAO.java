@@ -1,8 +1,10 @@
-package db;
+package db.dao;
 
+import db.DatabaseConnection;
 import model.ArtProduct;
 import model.Artist;
 import model.User;
+import network.dto.ArtProductDTO;
 
 import java.sql.Connection;
 import java.sql.PreparedStatement;
@@ -12,10 +14,8 @@ import java.util.ArrayList;
 import java.util.List;
 
 public class ArtProductDAO {
-    private final DatabaseConnection dbConnection;
     private final UserDAO userDAO;
-    public ArtProductDAO(DatabaseConnection dbConnection, UserDAO userDAO) {
-        this.dbConnection = dbConnection;
+    public ArtProductDAO(UserDAO userDAO) {
         this.userDAO = userDAO;
         createTable();
     }
@@ -28,7 +28,7 @@ public class ArtProductDAO {
                 + "base_price REAL NOT NULL,"
                 + "artist_id TEXT NOT NULL"
                 + ");";
-        try (Connection conn = dbConnection.getConnection();
+        try (Connection conn = DatabaseConnection.getConnection();
              Statement stmt = conn.createStatement()) {
             stmt.execute(sql);
         } catch (SQLException e) {
@@ -39,7 +39,7 @@ public class ArtProductDAO {
     public void insertArtProduct(ArtProduct artProduct) {
         String sql = "INSERT INTO art_products (name, description, base_price, artist_id) VALUES (?, ?, ?, ?);";
 
-        try (Connection conn = dbConnection.getConnection();
+        try (Connection conn = DatabaseConnection.getConnection();
              PreparedStatement pstmt = conn.prepareStatement(sql, Statement.RETURN_GENERATED_KEYS)) {
 
             pstmt.setString(1, artProduct.getName());
@@ -63,7 +63,7 @@ public class ArtProductDAO {
     public void updateArtProduct(ArtProduct artProduct) {
         String sql = "UPDATE art_products SET name = ?, description = ?, base_price = ?, artist_id = ? WHERE id = ?;";
 
-        try (Connection conn = dbConnection.getConnection();
+        try (Connection conn = DatabaseConnection.getConnection();
              PreparedStatement pstmt = conn.prepareStatement(sql)) {
 
             pstmt.setString(1, artProduct.getName());
@@ -83,7 +83,7 @@ public class ArtProductDAO {
     public void deleteArtProduct(int id) {
         String sql = "DELETE FROM art_products WHERE id = ?;";
 
-        try (Connection conn = dbConnection.getConnection();
+        try (Connection conn = DatabaseConnection.getConnection();
              PreparedStatement pstmt = conn.prepareStatement(sql)) {
 
             pstmt.setInt(1, id);
@@ -98,7 +98,7 @@ public class ArtProductDAO {
     public ArtProduct getArtProductById(int id) {
         String sql = "SELECT * FROM art_products WHERE id = ?;";
 
-        try (Connection conn = dbConnection.getConnection();
+        try (Connection conn = DatabaseConnection.getConnection();
              PreparedStatement pstmt = conn.prepareStatement(sql)) {
 
             pstmt.setInt(1, id);
@@ -136,7 +136,7 @@ public class ArtProductDAO {
         List<ArtProduct> artProducts = new ArrayList<>();
         String sql = "SELECT * FROM art_products;";
 
-        try (Connection conn = dbConnection.getConnection();
+        try (Connection conn = DatabaseConnection.getConnection();
              PreparedStatement pstmt = conn.prepareStatement(sql)) {
 
             var rs = pstmt.executeQuery();
@@ -170,5 +170,16 @@ public class ArtProductDAO {
             System.err.println("Error retrieving art_products: " + e.getMessage());
             return artProducts;
         }
+    }
+
+    public ArtProductDTO toDTO(ArtProduct product) {
+        return new ArtProductDTO(
+                product.getId(),
+                product.getArtist().getId(),
+                product.getName(),
+                product.getDescription(),
+                product.getBasePrice(),
+                product.getArtist().getUsername()
+        );
     }
 }

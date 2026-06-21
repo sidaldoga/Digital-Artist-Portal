@@ -56,6 +56,14 @@ public class Address {
         this.zipCode = zipCode;
     }
 
+    public void setId(int id) {
+        this.id = id;
+    }
+
+    public int getId() {
+        return id;
+    }
+
     @Override
     public String toString() {
         return street + ", " + zipCode + " " + city + "/" + country;
@@ -76,4 +84,6 @@ public class Address {
     public int hashCode(){
         return Objects.hash(street, city, zipCode, country);
     }
+
+
 }

@@ -1,6 +1,9 @@
-package db;
+package db.dao;
 
+import db.DatabaseConnection;
 import model.Artist;
+import network.dto.ArtistDTO;
+
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.SQLException;
@@ -9,11 +12,9 @@ import java.util.ArrayList;
 import java.util.List;
 
 public class ArtistDAO {
-    private final DatabaseConnection dbConnection;
     private final UserDAO userDAO;
 
-    public ArtistDAO(DatabaseConnection dbConnection, UserDAO userDAO) {
-        this.dbConnection = dbConnection;
+    public ArtistDAO( UserDAO userDAO) {
         this.userDAO = userDAO;
         createTable();
     }
@@ -25,7 +26,7 @@ public class ArtistDAO {
                 + "is_digital INTEGER NOT NULL,"
                 + "FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE"
                 + ");";
-        try (Connection conn = dbConnection.getConnection();
+        try (Connection conn = DatabaseConnection.getConnection();
              Statement stmt = conn.createStatement()) {
             stmt.execute(sql);
         } catch (SQLException e) {
@@ -37,7 +38,7 @@ public class ArtistDAO {
     public void insertArtistDetails(Artist artist) {
         String sql = "INSERT INTO artist_details (user_id, is_digital) VALUES (?, ?);";
 
-        try (Connection conn = dbConnection.getConnection();
+        try (Connection conn = DatabaseConnection.getConnection();
              PreparedStatement pstmt = conn.prepareStatement(sql)) {
 
             pstmt.setInt(1, artist.getId());
@@ -53,7 +54,7 @@ public class ArtistDAO {
     public void updateArtistDetails(Artist artist) {
         String sql = "UPDATE artist_details SET is_digital = ? WHERE user_id = ?;";
 
-        try (Connection conn = dbConnection.getConnection();
+        try (Connection conn = DatabaseConnection.getConnection();
              PreparedStatement pstmt = conn.prepareStatement(sql)) {
 
             pstmt.setInt(1, artist.isDigital() ? 1 : 0);
@@ -72,7 +73,7 @@ public class ArtistDAO {
 
         String sql = "SELECT * FROM artist_details WHERE user_id = ?;";
 
-        try (Connection conn = dbConnection.getConnection();
+        try (Connection conn = DatabaseConnection.getConnection();
              PreparedStatement pstmt = conn.prepareStatement(sql)) {
 
             pstmt.setInt(1, userId);
@@ -102,7 +103,7 @@ public class ArtistDAO {
         List<Artist> artists = new ArrayList<>();
         String sql = "SELECT user_id FROM artist_details;";
 
-        try (Connection conn = dbConnection.getConnection();
+        try (Connection conn = DatabaseConnection.getConnection();
              PreparedStatement pstmt = conn.prepareStatement(sql);
              var rs = pstmt.executeQuery()) {
 
@@ -120,7 +121,7 @@ public class ArtistDAO {
 
     public void deleteArtistDetails(int userId) {
         String sql = "DELETE FROM artist_details WHERE user_id = ?;";
-        try (Connection conn = dbConnection.getConnection();
+        try (Connection conn = DatabaseConnection.getConnection();
              PreparedStatement pstmt = conn.prepareStatement(sql)) {
 
             pstmt.setInt(1, userId);
@@ -129,5 +130,17 @@ public class ArtistDAO {
         } catch (SQLException e) {
             System.err.println("Error deleting artist details: " + e.getMessage());
         }
+    }
+
+    public ArtistDTO toDTO(Artist artist) {
+        return new ArtistDTO(
+                artist.getId(),
+                artist.getFname(),
+                artist.getLname(),
+                artist.getUsername(),
+                artist.getEmail(),
+                "ARTIST",
+                artist.isDigital()
+        );
     }
 }
