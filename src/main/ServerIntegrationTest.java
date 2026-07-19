@@ -5,9 +5,30 @@ import network.Response;
 import network.ServerConnection;
 import network.Status;
 import network.dto.*;
+import network.Client;
 
 
 public class ServerIntegrationTest {
+
+
+    public void testClientDynamicFlow() {
+        try (Client client = new Client("localhost", 8080)) {
+
+            System.out.println("PING-> " + client.ping());
+
+            Response login = client.login("artbysidal", "KatzeHund2001");
+            System.out.println("LOGIN-> " + login);
+
+            Response addresses = client.getAllAddresses();
+            System.out.println("GET_ALL_ADDRESSES -> " + addresses.getStatus()
+                    + " (" + payloadSize(addresses) + " addresses)");
+
+            System.out.println("GET_ADDRESS 1-> " + client.getAddress(1));
+
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+    }
 
     private static int passed = 0;
     private static int failed = 0;
@@ -124,5 +145,9 @@ public class ServerIntegrationTest {
         }
         System.out.println("[" + (ok ? "PASS" : "FAIL") + "] " + label
                 + " (expected " + expected + ") -> " + response);
+    }
+
+    private int payloadSize(Response r) {
+        return (r.getPayload() instanceof java.util.List<?> list) ? list.size() : 0;
     }
 }

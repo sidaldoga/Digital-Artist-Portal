@@ -12,18 +12,6 @@ import java.util.EnumSet;
 
 public class ClientHandler implements Runnable {
 
-    private static final EnumSet<Command> WRITE_COMMANDS = EnumSet.of(
-            Command.REGISTER, Command.UPDATE_USER, Command.REMOVE_USER,
-            Command.ADD_ADDRESS, Command.UPDATE_ADDRESS, Command.REMOVE_ADDRESS,
-            Command.ADD_ARTIST, Command.UPDATE_ARTIST, Command.REMOVE_ARTIST,
-            Command.ADD_ART_PRODUCT, Command.UPDATE_ART_PRODUCT, Command.REMOVE_ART_PRODUCT,
-            Command.ADD_DIGITAL_PRODUCT, Command.UPDATE_DIGITAL_PRODUCT, Command.REMOVE_DIGITAL_PRODUCT,
-            Command.ADD_PHYSICAL_PRODUCT, Command.UPDATE_PHYSICAL_PRODUCT, Command.REMOVE_PHYSICAL_PRODUCT,
-            Command.ADD_DIMENSION, Command.UPDATE_DIMENSION, Command.REMOVE_DIMENSION,
-            Command.ADD_SUBSCRIBER, Command.UPDATE_SUBSCRIBER, Command.REMOVE_SUBSCRIBER,
-            Command.ADD_SUBSCRIPTION, Command.UPDATE_SUBSCRIPTION, Command.REMOVE_SUBSCRIPTION,
-            Command.ADD_PURCHASE);
-
     private final Socket socket;
     private final UserDAO userDAO;
     private final ArtProductDAO artProductDAO;
@@ -86,7 +74,7 @@ public class ClientHandler implements Runnable {
     }
 
     private Response handleRequest(Command cmd, Object data) {
-        boolean isWrite = WRITE_COMMANDS.contains(cmd);
+        boolean isWrite = cmd.requiresLock();
         if (isWrite) {
             DatabaseLock.WRITE_LOCK.lock();
         }
