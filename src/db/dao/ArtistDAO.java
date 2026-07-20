@@ -152,7 +152,8 @@ public class ArtistDAO {
                 artist.getUsername(),
                 artist.getEmail(),
                 "ARTIST",
-                artist.isDigital()
+                artist.isDigital(),
+                artist.getPassword()
         );
     }
 

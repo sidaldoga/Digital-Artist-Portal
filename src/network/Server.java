@@ -10,12 +10,12 @@ public class Server {
         int port = 8080;
 
         UserDAO userDAO = new UserDAO();
-        ArtProductDAO artProductDAO = new ArtProductDAO(userDAO);
         AddressDAO addressDAO = new AddressDAO();
         ArtistDAO artistDAO = new ArtistDAO(userDAO);
-        DigitalProductDAO digitalProductDAO = new DigitalProductDAO(artProductDAO);
         DimensionsDAO dimensionsDAO = new DimensionsDAO();
-        PhysicalProductDAO physicalProductDAO = new PhysicalProductDAO(artProductDAO,dimensionsDAO);
+        PhysicalProductDAO physicalProductDAO = new PhysicalProductDAO(userDAO, dimensionsDAO);
+        DigitalProductDAO digitalProductDAO = new DigitalProductDAO(userDAO);
+        ArtProductDAO artProductDAO = new ArtProductDAO(physicalProductDAO, digitalProductDAO);
         SubscriberDAO subscriberDAO = new SubscriberDAO(userDAO);
         SubscriptionDAO subscriptionDAO = new SubscriptionDAO(userDAO);
         PurchaseDAO purchaseDAO = new PurchaseDAO();

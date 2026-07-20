@@ -105,7 +105,7 @@ public class ClientHandler implements Runnable {
                     } else if (newUser instanceof Artist art) {
                         artistDAO.insertArtistDetails(art);
                     }
-                    return Response.ok();
+                    return Response.ok("Success");
                 }
 
                 case GET_ADDRESS: {
@@ -142,8 +142,8 @@ public class ClientHandler implements Runnable {
                     return Response.ok();
 
                 case ADD_ART_PRODUCT:
-                    artProductDAO.insertArtProduct(artProductDAO.fromDTO((ArtProductDTO) data));
-                    return Response.ok();
+                    return Response.error(Status.INVALID_ARGUMENT,
+                            "Use ADD_PHYSICAL_PRODUCT or ADD_DIGITAL_PRODUCT");
                 case GET_ART_PRODUCT: {
                     ArtProduct p = artProductDAO.getArtProductById((int) data);
                     return (p != null) ? Response.ok(artProductDAO.toDTO(p))
@@ -153,8 +153,8 @@ public class ClientHandler implements Runnable {
                     artProductDAO.deleteArtProduct((int) data);
                     return Response.ok();
                 case UPDATE_ART_PRODUCT:
-                    artProductDAO.updateArtProduct(artProductDAO.fromDTO((ArtProductDTO) data));
-                    return Response.ok();
+                    return Response.error(Status.INVALID_ARGUMENT,
+                            "Use UPDATE_PHYSICAL_PRODUCT or UPDATE_DIGITAL_PRODUCT");
 
                 case ADD_DIGITAL_PRODUCT:
                     return Response.ok(digitalProductDAO.insertDigitalProduct(
@@ -263,24 +263,30 @@ public class ClientHandler implements Runnable {
                     PurchaseDTO p = (PurchaseDTO) data;
                     int productId = p.getProductId();
 
-                    PhysicalProduct phys = physicalProductDAO.getPhysicalProductById(productId);
-                    if (phys != null) {
+
+                    if ("PHYSICAL".equalsIgnoreCase(p.getProductType())) {
+                        PhysicalProduct phys = physicalProductDAO.getPhysicalProductById(productId);
+                        if (phys == null) {
+                            return Response.error(Status.NOT_FOUND, "Physical product not found");
+                        }
                         if (phys.getStock() <= 0) {
                             return Response.error(Status.INVALID_ARGUMENT, "Product sold out");
                         }
-                        purchaseDAO.insertPurchase(p.getBuyerId(), productId);
+                        purchaseDAO.insertPurchase(p.getBuyerId(), productId, "PHYSICAL");
                         physicalProductDAO.updateStock(productId, phys.getStock() - 1);
                         return Response.ok("Purchased physical product; remaining stock = "
                                 + (phys.getStock() - 1));
-                    }
-
-                    DigitalProduct digi = digitalProductDAO.getDigitalProductById(productId);
-                    if (digi != null) {
-                        purchaseDAO.insertPurchase(p.getBuyerId(), productId);
+                    } else if ("DIGITAL".equalsIgnoreCase(p.getProductType())) {
+                        DigitalProduct digi = digitalProductDAO.getDigitalProductById(productId);
+                        if (digi == null) {
+                            return Response.error(Status.NOT_FOUND, "Digital product not found");
+                        }
+                        purchaseDAO.insertPurchase(p.getBuyerId(), productId, "DIGITAL");
                         return Response.ok("Purchased digital product");
                     }
 
-                    return Response.error(Status.NOT_FOUND, "Product not found");
+                    return Response.error(Status.INVALID_ARGUMENT,
+                            "productType must be PHYSICAL or DIGITAL");
                 }
 
                 case GET_ALL_USERS:
@@ -299,6 +305,26 @@ public class ClientHandler implements Runnable {
                     return Response.ok(dimensionsDAO.getAllDimensions().stream().map(dimensionsDAO::toDTO).toList());
                 case GET_ALL_SUBSCRIPTIONS:
                     return Response.ok(subscriptionDAO.getAllSubscriptions().stream().map(subscriptionDAO::toDTO).toList());
+
+                case GET_SALES_LOGS_BY_ARTIST: {
+                    int artistId = (int) data;
+                    java.util.List<SalesLogDTO> logs = new java.util.ArrayList<>();
+                    for (PurchaseDAO.PurchaseRow row : purchaseDAO.getAllPurchases()) {
+
+                        ArtProduct product = "PHYSICAL".equalsIgnoreCase(row.productType())
+                                ? physicalProductDAO.getPhysicalProductById(row.productId())
+                                : digitalProductDAO.getDigitalProductById(row.productId());
+                        if (product == null || product.getArtist() == null
+                                || product.getArtist().getId() != artistId) {
+                            continue;
+                        }
+                        User buyer = userDAO.getUserById(row.buyerId());
+                        String buyerName = (buyer != null) ? buyer.getUsername() : "unknown";
+                        logs.add(new SalesLogDTO(buyerName, product.getName(),
+                                row.productType(), row.date()));
+                    }
+                    return Response.ok(logs);
+                }
 
                 default:
                     return Response.error(Status.INVALID_ARGUMENT, "Unknown command: " + cmd);

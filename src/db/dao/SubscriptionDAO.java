@@ -107,8 +107,8 @@ public class SubscriptionDAO {
             var rs = pstmt.executeQuery();
 
             if (rs.next()) {
-                Subscriber subscriber = (Subscriber) userDAO.getUserById(rs.getInt("subscriber_id"));
-                Artist artist = (Artist) userDAO.getUserById(rs.getInt("artist_id"));
+                Subscriber subscriber = asSubscriber(userDAO.getUserById(rs.getInt("subscriber_id")));
+                Artist artist = asArtist(userDAO.getUserById(rs.getInt("artist_id")));
 
                 Subscription subscription = new Subscription(
                         rs.getInt("id"),
@@ -139,8 +139,8 @@ public class SubscriptionDAO {
             var rs = pstmt.executeQuery();
 
             while (rs.next()) {
-                Subscriber subscriber = (Subscriber) userDAO.getUserById(rs.getInt("subscriber_id"));
-                Artist artist = (Artist) userDAO.getUserById(rs.getInt("artist_id"));
+                Subscriber subscriber = asSubscriber(userDAO.getUserById(rs.getInt("subscriber_id")));
+                Artist artist = asArtist(userDAO.getUserById(rs.getInt("artist_id")));
 
                 Subscription subscription = new Subscription(
                         rs.getInt("id"),
@@ -194,6 +194,22 @@ public class SubscriptionDAO {
             System.err.println("Error checking subscription existence: " + e.getMessage());
             return false;
         }
+    }
+
+    private Subscriber asSubscriber(model.User u) {
+        if (u == null) return null;
+        Subscriber s = new Subscriber(u.getFname(), u.getLname(), u.getUsername(),
+                u.getPassword(), null, new ArrayList<>(), 0, u.getEmail());
+        s.setId(u.getId());
+        return s;
+    }
+
+    private Artist asArtist(model.User u) {
+        if (u == null) return null;
+        Artist a = new Artist(u.getFname(), u.getLname(), u.getUsername(),
+                u.getPassword(), u.getEmail(), false);
+        a.setId(u.getId());
+        return a;
     }
 
     public Subscription fromDTO(SubscriptionDTO dto) {

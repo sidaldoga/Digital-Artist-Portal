@@ -6,8 +6,12 @@ import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.SQLException;
 import java.sql.Statement;
+import java.util.ArrayList;
+import java.util.List;
 
 public class PurchaseDAO {
+
+    public record PurchaseRow(int id, int buyerId, int productId, String productType, String date) {}
 
     public PurchaseDAO() {
         createTable();
@@ -18,9 +22,9 @@ public class PurchaseDAO {
                 + "id INTEGER PRIMARY KEY AUTOINCREMENT,"
                 + "buyer_id INTEGER NOT NULL,"
                 + "product_id INTEGER NOT NULL,"
+                + "product_type TEXT NOT NULL,"
                 + "purchase_date TEXT NOT NULL,"
-                + "FOREIGN KEY (buyer_id) REFERENCES users(id) ON DELETE CASCADE,"
-                + "FOREIGN KEY (product_id) REFERENCES art_products(id) ON DELETE CASCADE"
+                + "FOREIGN KEY (buyer_id) REFERENCES users(id) ON DELETE CASCADE"
                 + ");";
         try (Connection conn = DatabaseConnection.getConnection();
              Statement stmt = conn.createStatement()) {
@@ -30,21 +34,22 @@ public class PurchaseDAO {
         }
     }
 
-    public synchronized int insertPurchase(int buyerId, int productId) {
-        String sql = "INSERT INTO purchases (buyer_id, product_id, purchase_date) VALUES (?, ?, ?);";
+    public synchronized int insertPurchase(int buyerId, int productId, String productType) {
+        String sql = "INSERT INTO purchases (buyer_id, product_id, product_type, purchase_date) VALUES (?, ?, ?, ?);";
 
         try (Connection conn = DatabaseConnection.getConnection();
              PreparedStatement pstmt = conn.prepareStatement(sql, Statement.RETURN_GENERATED_KEYS)) {
 
             pstmt.setInt(1, buyerId);
             pstmt.setInt(2, productId);
-            pstmt.setString(3, java.time.LocalDate.now().toString());
+            pstmt.setString(3, productType);
+            pstmt.setString(4, java.time.LocalDate.now().toString());
             pstmt.executeUpdate();
 
             try (var generatedKeys = pstmt.getGeneratedKeys()) {
                 if (generatedKeys.next()) {
                     int id = generatedKeys.getInt(1);
-                    System.out.println("Purchase recorded: buyer " + buyerId + " -> product " + productId);
+                    System.out.println("Purchase recorded: buyer " + buyerId + " -> " + productType + " product " + productId);
                     return id;
                 }
             }
@@ -52,5 +57,27 @@ public class PurchaseDAO {
             System.err.println("Error inserting purchase: " + e.getMessage());
         }
         return -1;
+    }
+
+    public List<PurchaseRow> getAllPurchases() {
+        List<PurchaseRow> rows = new ArrayList<>();
+        String sql = "SELECT id, buyer_id, product_id, product_type, purchase_date FROM purchases;";
+
+        try (Connection conn = DatabaseConnection.getConnection();
+             PreparedStatement pstmt = conn.prepareStatement(sql);
+             var rs = pstmt.executeQuery()) {
+
+            while (rs.next()) {
+                rows.add(new PurchaseRow(
+                        rs.getInt("id"),
+                        rs.getInt("buyer_id"),
+                        rs.getInt("product_id"),
+                        rs.getString("product_type"),
+                        rs.getString("purchase_date")));
+            }
+        } catch (SQLException e) {
+            System.err.println("Error retrieving purchases: " + e.getMessage());
+        }
+        return rows;
     }
 }

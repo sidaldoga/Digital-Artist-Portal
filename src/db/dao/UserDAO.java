@@ -395,11 +395,11 @@ public class UserDAO {
                 );
             }
             return new SubscriberDTO(s.getId(), s.getFname(), s.getLname(), s.getUsername(),
-                    s.getEmail(), "SUBSCRIBER", s.getSubscriberpoint(), addrDto);
+                    s.getEmail(), "SUBSCRIBER", s.getSubscriberpoint(), addrDto,s.getPassword());
         } else if (user instanceof Artist a) {
             return new ArtistDTO(a.getId(), a.getFname(), a.getLname(), a.getUsername(),
-                    a.getEmail(), "ARTIST", a.isDigital());
+                    a.getEmail(), "ARTIST", a.isDigital(),a.getPassword());
         }
-        return new UserDTO(user.getId(), user.getFname(), user.getLname(), user.getUsername(), user.getEmail(), "USER");
+        return new UserDTO(user.getId(), user.getFname(), user.getLname(), user.getUsername(), user.getEmail(), "USER", user.getPassword());
     }
 }

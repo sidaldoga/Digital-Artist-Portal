@@ -45,7 +45,7 @@ public class ServerIntegrationTest {
             check("PING", conn.send(Command.PING, null));
 
             ArtistDTO artistReg = new ArtistDTO(0, "Sidal", "Ozkan", artistUser,
-                    artistUser + "@art.com", "ARTIST", true);
+                    artistUser + "@art.com", "ARTIST", true,"12345");
             artistReg.setPassword(password);
             check("REGISTER artist", conn.send(Command.REGISTER, artistReg));
 
@@ -80,7 +80,7 @@ public class ServerIntegrationTest {
 
             SubscriberDTO subReg = new SubscriberDTO(0, "Nermin", "Bozkurt", subUser,
                     subUser + "@mail.com", "SUBSCRIBER", 0,
-                    new AddressDTO("Hermannstr. 5", "Duisburg", "47226", "Germany"));
+                    new AddressDTO("Hermannstr. 5", "Duisburg", "47226", "Germany"),"12345");
             subReg.setPassword(password);
             check("REGISTER subscriber", conn.send(Command.REGISTER, subReg));
 
@@ -96,14 +96,14 @@ public class ServerIntegrationTest {
                     conn.send(Command.ADD_SUBSCRIPTION, subscription), Status.INVALID_ARGUMENT);
 
             check("ADD_PURCHASE physical",
-                    conn.send(Command.ADD_PURCHASE, new PurchaseDTO(subId, physId)));
+                    conn.send(Command.ADD_PURCHASE, new PurchaseDTO(subId, physId, "PHYSICAL")));
             expect("ADD_PURCHASE physical",
-                    conn.send(Command.ADD_PURCHASE, new PurchaseDTO(subId, physId)),
+                    conn.send(Command.ADD_PURCHASE, new PurchaseDTO(subId, physId, "PHYSICAL")),
                     Status.INVALID_ARGUMENT);
             check("ADD_PURCHASE digital",
-                    conn.send(Command.ADD_PURCHASE, new PurchaseDTO(subId, digiId)));
+                    conn.send(Command.ADD_PURCHASE, new PurchaseDTO(subId, digiId, "DIGITAL")));
             check("ADD_PURCHASE digital",
-                    conn.send(Command.ADD_PURCHASE, new PurchaseDTO(subId, digiId)));
+                    conn.send(Command.ADD_PURCHASE, new PurchaseDTO(subId, digiId, "DIGITAL")));
 
             Response getArtist = conn.send(Command.GET_USER, artistId);
             check("GET_USER (artist)", getArtist);

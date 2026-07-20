@@ -14,24 +14,28 @@ import java.sql.Statement;
 import java.util.ArrayList;
 import java.util.List;
 
-public class DigitalProductDAO {
-    private final ArtProductDAO artProductDAO;
 
-    public DigitalProductDAO(ArtProductDAO artProductDAO) {
-        this.artProductDAO = artProductDAO;
+public class DigitalProductDAO {
+    private final UserDAO userDAO;
+
+    public DigitalProductDAO(UserDAO userDAO) {
+        this.userDAO = userDAO;
         createTable();
     }
 
     private void createTable() {
-
         String sql = "CREATE TABLE IF NOT EXISTS digital_products ("
-                + "product_id INTEGER PRIMARY KEY,"
+                + "id INTEGER PRIMARY KEY AUTOINCREMENT,"
+                + "name TEXT NOT NULL,"
+                + "description TEXT,"
+                + "base_price REAL NOT NULL,"
+                + "artist_id INTEGER NOT NULL,"
                 + "style TEXT NOT NULL,"
                 + "download_url TEXT NOT NULL,"
                 + "file_size_mb REAL NOT NULL,"
                 + "file_extension TEXT NOT NULL,"
                 + "dig_product_type TEXT NOT NULL,"
-                + "FOREIGN KEY (product_id) REFERENCES art_products(id) ON DELETE CASCADE"
+                + "FOREIGN KEY (artist_id) REFERENCES users(id) ON DELETE CASCADE"
                 + ");";
         try (Connection conn = DatabaseConnection.getConnection();
              Statement stmt = conn.createStatement()) {
@@ -42,60 +46,77 @@ public class DigitalProductDAO {
     }
 
     public synchronized int insertDigitalProduct(DigitalProduct product) {
-        artProductDAO.insertArtProduct(product);
-
-        String sql = "INSERT INTO digital_products (product_id, style, download_url, file_size_mb, file_extension, dig_product_type) VALUES (?, ?, ?, ?, ?, ?);";
+        String sql = "INSERT INTO digital_products "
+                + "(name, description, base_price, artist_id, style, download_url, file_size_mb, file_extension, dig_product_type) "
+                + "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?);";
 
         try (Connection conn = DatabaseConnection.getConnection();
-             PreparedStatement pstmt = conn.prepareStatement(sql)) {
+             PreparedStatement pstmt = conn.prepareStatement(sql, Statement.RETURN_GENERATED_KEYS)) {
 
-            pstmt.setInt(1, product.getId());
-            pstmt.setString(2, product.getStyle().name());
-            pstmt.setString(3, product.getDownloadURL());
-            pstmt.setDouble(4, product.getFileSizeMb());
-            pstmt.setString(5, product.getFileExtension());
-            pstmt.setString(6, product.getDigProductType().name());
+            pstmt.setString(1, product.getName());
+            pstmt.setString(2, product.getDescription());
+            pstmt.setDouble(3, product.getBasePrice());
+            pstmt.setInt(4, product.getArtist().getId());
+            pstmt.setString(5, product.getStyle().name());
+            pstmt.setString(6, product.getDownloadURL());
+            pstmt.setDouble(7, product.getFileSizeMb());
+            pstmt.setString(8, product.getFileExtension());
+            pstmt.setString(9, product.getDigProductType().name());
 
             pstmt.executeUpdate();
+
+            try (var keys = pstmt.getGeneratedKeys()) {
+                if (keys.next()) {
+                    product.setId(keys.getInt(1));
+                }
+            }
             System.out.println("DigitalProduct successfully inserted " + product.getName());
         } catch (SQLException e) {
-            System.err.println("Error inserting digital product details: " + e.getMessage());
+            System.err.println("Error inserting digital product: " + e.getMessage());
         }
         return product.getId();
     }
 
     public synchronized void updateDigitalProduct(DigitalProduct product) {
-        artProductDAO.updateArtProduct(product);
-
-        String sql = "UPDATE digital_products SET style = ?, download_url = ?, file_size_mb = ?, file_extension = ?, dig_product_type = ? WHERE product_id = ?;";
+        String sql = "UPDATE digital_products SET name = ?, description = ?, base_price = ?, artist_id = ?, "
+                + "style = ?, download_url = ?, file_size_mb = ?, file_extension = ?, dig_product_type = ? WHERE id = ?;";
 
         try (Connection conn = DatabaseConnection.getConnection();
              PreparedStatement pstmt = conn.prepareStatement(sql)) {
 
-            pstmt.setString(1, product.getStyle().name());
-            pstmt.setString(2, product.getDownloadURL());
-            pstmt.setDouble(3, product.getFileSizeMb());
-            pstmt.setString(4, product.getFileExtension());
-            pstmt.setString(5, product.getDigProductType().name());
-            pstmt.setInt(6, product.getId());
+            pstmt.setString(1, product.getName());
+            pstmt.setString(2, product.getDescription());
+            pstmt.setDouble(3, product.getBasePrice());
+            pstmt.setInt(4, product.getArtist().getId());
+            pstmt.setString(5, product.getStyle().name());
+            pstmt.setString(6, product.getDownloadURL());
+            pstmt.setDouble(7, product.getFileSizeMb());
+            pstmt.setString(8, product.getFileExtension());
+            pstmt.setString(9, product.getDigProductType().name());
+            pstmt.setInt(10, product.getId());
 
             pstmt.executeUpdate();
             System.out.println("DigitalProduct successfully updated: " + product.getName());
-
         } catch (SQLException e) {
-            System.err.println("Error updating digital product details: " + e.getMessage());
+            System.err.println("Error updating digital product: " + e.getMessage());
         }
     }
 
     public synchronized void deleteDigitalProduct(int id) {
-        artProductDAO.deleteArtProduct(id);
+        String sql = "DELETE FROM digital_products WHERE id = ?;";
+        try (Connection conn = DatabaseConnection.getConnection();
+             PreparedStatement pstmt = conn.prepareStatement(sql)) {
+
+            pstmt.setInt(1, id);
+            pstmt.executeUpdate();
+            System.out.println("DigitalProduct with ID " + id + " successfully deleted.");
+        } catch (SQLException e) {
+            System.err.println("Error deleting digital product: " + e.getMessage());
+        }
     }
 
     public DigitalProduct getDigitalProductById(int id) {
-        model.ArtProduct baseProduct = artProductDAO.getArtProductById(id);
-        if (baseProduct == null) return null;
-
-        String sql = "SELECT * FROM digital_products WHERE product_id = ?;";
+        String sql = "SELECT * FROM digital_products WHERE id = ?;";
 
         try (Connection conn = DatabaseConnection.getConnection();
              PreparedStatement pstmt = conn.prepareStatement(sql)) {
@@ -104,48 +125,46 @@ public class DigitalProductDAO {
             var rs = pstmt.executeQuery();
 
             if (rs.next()) {
+                Artist artist = (Artist) userDAO.getUserById(rs.getInt("artist_id"));
+
                 return new DigitalProduct(
-                        baseProduct.getId(),
-                        baseProduct.getName(),
-                        baseProduct.getDescription(),
-                        baseProduct.getBasePrice(),
-                        baseProduct.getArtist(),
+                        rs.getInt("id"),
+                        rs.getString("name"),
+                        rs.getString("description"),
+                        rs.getDouble("base_price"),
+                        artist,
                         ArtStyle.valueOf(rs.getString("style")),
                         DigProductType.valueOf(rs.getString("dig_product_type")),
                         rs.getString("file_extension"),
                         rs.getDouble("file_size_mb"),
                         rs.getString("download_url")
                 );
-            } else {
-                System.out.println("No digital details found for product ID: " + id);
-                return null;
             }
-
+            return null;
         } catch (SQLException e) {
             System.err.println("Error retrieving digital product: " + e.getMessage());
             return null;
         }
     }
+
     public List<DigitalProduct> getAllDigitalProducts() {
         List<DigitalProduct> products = new ArrayList<>();
-        String sql = "SELECT product_id FROM digital_products;";
+        String sql = "SELECT id FROM digital_products;";
 
         try (Connection conn = DatabaseConnection.getConnection();
              PreparedStatement pstmt = conn.prepareStatement(sql);
              var rs = pstmt.executeQuery()) {
 
             while (rs.next()) {
-                DigitalProduct p = getDigitalProductById(rs.getInt("product_id"));
+                DigitalProduct p = getDigitalProductById(rs.getInt("id"));
                 if (p != null) {
                     products.add(p);
                 }
             }
-            return products;
-
         } catch (SQLException e) {
             System.err.println("Error retrieving all digital products: " + e.getMessage());
-            return products;
         }
+        return products;
     }
 
     public DigitalProduct fromDTO(DigitalProductDTO dto) {

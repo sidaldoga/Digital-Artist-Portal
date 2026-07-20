@@ -26,7 +26,10 @@ public class SubscriberDAO {
     private void createTable() {
         String sql = "CREATE TABLE IF NOT EXISTS subscriber_details ("
                 + "user_id INTEGER PRIMARY KEY,"
-                + "address_text TEXT,"
+                + "street TEXT,"
+                + "city TEXT,"
+                + "zip_code TEXT,"
+                + "country TEXT,"
                 + "subscriber_point INTEGER DEFAULT 0,"
                 + "FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE"
                 + ");";
@@ -38,34 +41,46 @@ public class SubscriberDAO {
         }
     }
 
-
     public synchronized void insertSubscriberDetails(Subscriber subscriber) {
-        String sql = "INSERT INTO subscriber_details (user_id, address_text, subscriber_point) VALUES (?, ?, ?);";
+        String sql = "INSERT INTO subscriber_details (user_id, street, city, zip_code, country, subscriber_point) VALUES (?, ?, ?, ?, ?, ?);";
 
         try (Connection conn = DatabaseConnection.getConnection();
              PreparedStatement pstmt = conn.prepareStatement(sql)) {
 
             pstmt.setInt(1, subscriber.getId());
-            pstmt.setString(2, subscriber.getAddress() != null ? subscriber.getAddress().toString() : null);
-            pstmt.setInt(3, subscriber.getSubscriberpoint());
+            if (subscriber.getAddress() != null) {
+                pstmt.setString(2, subscriber.getAddress().getStreet());
+                pstmt.setString(3, subscriber.getAddress().getCity());
+                pstmt.setString(4, subscriber.getAddress().getZipCode());
+                pstmt.setString(5, subscriber.getAddress().getCountry());
+            } else {
+                pstmt.setString(2, null);
+                pstmt.setString(3, null);
+                pstmt.setString(4, null);
+                pstmt.setString(5, null);
+            }
+            pstmt.setInt(6, subscriber.getSubscriberpoint());
 
             pstmt.executeUpdate();
-            System.out.println("Subscriber details successfully inserted for: " + subscriber.getUsername());
         } catch (SQLException e) {
-            System.err.println("Error inserting subscriber details: " + e.getMessage());
+            System.err.println("Error inserting subscriber: " + e.getMessage());
         }
     }
 
 
     public synchronized void updateSubscriberDetails(Subscriber subscriber) {
-        String sql = "UPDATE subscriber_details SET address_text = ?, subscriber_point = ? WHERE user_id = ?;";
+        String sql = "UPDATE subscriber_details SET street = ?, city = ?, zip_code = ?, country = ?, subscriber_point = ? WHERE user_id = ?;";
 
         try (Connection conn = DatabaseConnection.getConnection();
              PreparedStatement pstmt = conn.prepareStatement(sql)) {
 
-            pstmt.setString(1, subscriber.getAddress() != null ? subscriber.getAddress().toString() : null);
-            pstmt.setInt(2, subscriber.getSubscriberpoint());
-            pstmt.setInt(3, subscriber.getId());
+            Address addr = subscriber.getAddress();
+            pstmt.setString(1, addr != null ? addr.getStreet() : null);
+            pstmt.setString(2, addr != null ? addr.getCity() : null);
+            pstmt.setString(3, addr != null ? addr.getZipCode() : null);
+            pstmt.setString(4, addr != null ? addr.getCountry() : null);
+            pstmt.setInt(5, subscriber.getSubscriberpoint());
+            pstmt.setInt(6, subscriber.getId());
 
             pstmt.executeUpdate();
             System.out.println("Subscriber details successfully updated for: " + subscriber.getUsername());
@@ -87,28 +102,12 @@ public class SubscriberDAO {
             var rs = pstmt.executeQuery();
 
             if (rs.next()) {
-                String addrStr = rs.getString("address_text");
-                Address addressObj = null;
+                String street = rs.getString("street");
+                String city = rs.getString("city");
+                String zipCode = rs.getString("zip_code");
+                String country = rs.getString("country");
 
-                if (addrStr != null && !addrStr.isEmpty() && addrStr.contains(",")) {
-                    try {
-                        String[] parts = addrStr.split(",", 2);
-                        String street = parts[0].trim();
-
-                        String[] rest = parts[1].trim().split(" ", 2);
-                        String zipCode = rest[0].trim();
-
-                        String[] cityAndCountry = rest[1].trim().split("/", 2);
-                        String city = cityAndCountry[0].trim();
-                        String country = cityAndCountry[1].trim();
-
-                        addressObj = new Address(street, city, zipCode, country);
-                    } catch (Exception e) {
-                        addressObj = new Address(addrStr, "Unknown", "Unknown", "Unknown");
-                    }
-                } else if (addrStr != null) {
-                    addressObj = new Address(addrStr, "Unknown", "Unknown", "Unknown");
-                }
+                Address addressObj = (street != null) ? new Address(street, city, zipCode, country) : null;
 
                 Subscriber subscriber = new Subscriber(
                         baseUser.getFname(),
@@ -185,7 +184,7 @@ public class SubscriberDAO {
                 new AddressDTO(s.getAddress().getStreet(), s.getAddress().getCity(), s.getAddress().getZipCode(), s.getAddress().getCountry()) : null;
 
         return new SubscriberDTO(s.getId(), s.getFname(), s.getLname(), s.getUsername(),
-                s.getEmail(), "SUBSCRIBER", s.getSubscriberpoint(), addrDto);
+                s.getEmail(), "SUBSCRIBER", s.getSubscriberpoint(), addrDto,s.getPassword());
     }
 
 }

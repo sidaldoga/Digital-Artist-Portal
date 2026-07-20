@@ -21,47 +21,47 @@
     - GUI: Eine Benutzeroberfläche, auf der Künstler ihre Produktbilder/Produkttypen verwalten können und Abonnenten ihre Pakete auswählen können.
   
 - Nice to Have:
-    - Benachrichtigungen, die Abonnenten über die Veröffentlichung neuer Monatspakete informieren.
-    - Eine grafische Übersicht, die das monatliche Abonnentenwachstum für Künstler zeigt.
+    - Discover-Feed: Abonnenten durchstöbern alle noch nicht abonnierten Künstler und können direkt abonnieren oder deren Werke ansehen.
+    - Abonnement-Kündigung: bestehende Abonnements lassen sich über die Oberfläche wieder beenden (`REMOVE_SUBSCRIPTION`).
 
 ## Netzwerkarchitektur
 
-Die Anwendung basiert auf einem **Client Server Modell**. Ein zentraler
-`Server` lauscht auf TCP Port `8080` und startet pro eingehender
-Verbindung einen eigenen `ClientHandler` Thread, sodass mehrere Clients
+Die Anwendung basiert auf einem **Client-Server-Modell**. Ein zentraler
+`Server` lauscht auf TCP-Port `8080` und startet pro eingehender
+Verbindung einen eigenen `ClientHandler`-Thread, sodass mehrere Clients
 gleichzeitig bedient werden.
 
 **Zuverlässiger Transport.** Die Kommunikation erfolgt über
-**TCP Sockets**, die eine geordnete und verlustfreie Übertragung
-garantieren  eine Voraussetzung für konsistente Datenbankoperationen.
+**TCP-Sockets**, die eine geordnete und verlustfreie Übertragung
+garantieren — eine Voraussetzung für konsistente Datenbankoperationen.
 
 **Request/Response Muster.** Jeder Austausch nutzt ein typisiertes
-Nachrichtenpaar: Der Client sendet ein `Request`Objekt (`Command`Enum
-+ Nutzdaten), der Server antwortet mit einem `Response`Objekt
-  (`Status`Enum + Nutzdaten). Das Protokoll ist dadurch explizit und
+Nachrichtenpaar: Der Client sendet ein `Request`-Objekt (`Command`-Enum
++ Nutzdaten), der Server antwortet mit einem `Response`-Objekt
+  (`Status`-Enum + Nutzdaten). Das Protokoll ist dadurch explizit und
   selbstbeschreibend.
 
-**DTO Schicht.** Es werden **keine** Modellobjekte (`User`, `Artist`,
+**DTO-Schicht.** Es werden **keine** Modellobjekte (`User`, `Artist`,
 `Purchase`,...) direkt über das Netzwerk serialisiert. Jedes wird über
-symmetrische `toDTO`/`fromDTO`Methoden auf ein passendes **Data
+symmetrische `toDTO`/`fromDTO`-Methoden auf ein passendes **Data
 Transfer Object** (`UserDTO`, `ArtistDTO`,...) abgebildet. Das entkoppelt
 den Netzwerkvertrag vom internen Modell und verhindert das Durchsickern
-sensibler Persistenzdetails (z. B. PasswortHashes).
+sensibler Persistenzdetails (z. B. Passwort-Hashes).
 
-**Deadlock Vermeidung.** Ein `ObjectInputStream` blockiert beim
+**Deadlock-Vermeidung.** Ein `ObjectInputStream` blockiert beim
 Erzeugen, bis er den Header des gegenüberliegenden
 `ObjectOutputStream` gelesen hat. Würden beide Seiten zuerst ihren
 Eingabestrom öffnen, käme es zum Deadlock. Die Hilfsklasse
-`ServerConnection` erzwingt die korrekte Reihenfolge   den
+`ServerConnection` erzwingt die korrekte Reihenfolge — den
 `ObjectOutputStream` zuerst öffnen und per `flush()` leeren, danach den
 `ObjectInputStream`; der `ClientHandler` verfährt spiegelbildlich. Als
 `AutoCloseable` schließt `ServerConnection` die Verbindung zudem sauber
-mit einem `BYE`Befehl.
+mit einem `BYE`-Befehl.
 
 ## Nebenläufigkeit & Synchronisation
 
-Da jeder Client in einem eigenen Server Thread läuft, müssen
-gleichzeitige Schreibzugriffe auf die gemeinsame SQLiteDatenbank
+Da jeder Client in einem eigenen Server-Thread läuft, müssen
+gleichzeitige Schreibzugriffe auf die gemeinsame SQLite-Datenbank
 serialisiert werden. Dafür dient ein globaler `ReentrantLock`, der über
 `DatabaseLock.WRITE_LOCK` bereitgestellt wird.
 
@@ -76,16 +76,16 @@ unteilbarer **kritischer Abschnitt** ausgeführt:
       finally { if (isWrite) DatabaseLock.WRITE_LOCK.unlock(); }
 
 Dies garantiert **Atomarität** auch für mehrstufige
-Lese Ändere Schreibe Abläufe und sichert damit die **Datenintegrität**
+Lese-Ändere-Schreibe-Abläufe und sichert damit die **Datenintegrität**
 bei simultanem Zugriff. Lesebefehle werden nicht gesperrt und bleiben
 dadurch performant. Ergänzend kapselt `DatabaseLock` die Methoden
 `write(Runnable)` und `write(Supplier<T>)` zum Schutz einzelner Blöcke.
 
 Die kritische gemeinsame Ressource ist ein einzelner Datenbankdatensatz
 (z. B. der Lagerbestand `stock` eines physischen Produkts), auf den
-mehrere Client Threads gleichzeitig schreibend zugreifen können. Ohne
+mehrere Client-Threads gleichzeitig schreibend zugreifen können. Ohne
 Synchronisation entsteht eine Race Condition, da sich nebenläufige
-Lese Ändere Schreibe Abläufe verschränken und so einen verlorenen
+Lese-Ändere-Schreibe-Abläufe verschränken und so einen verlorenen
 Schreibvorgang (Lost Update) bzw. einen Überverkauf erzeugen können. Der
 `DatabaseLock` (ein globaler `ReentrantLock`) serialisiert alle
 Schreibzugriffe zu atomaren kritischen Abschnitten, wodurch der
@@ -94,9 +94,9 @@ Datensatzes stets konsistent bleibt.
 
 ## Race Condition Test
 
-`RaceConditionTest` provoziert eine Schreib Schreib Wettlaufsituation:
+`RaceConditionTest` provoziert eine Schreib-Schreib-Wettlaufsituation:
 Zwei Threads (`Client-A`, `Client-B`) öffnen je eine eigene Verbindung
-und senden gleichzeitig 25 `UPDATE_USER` Anfragen auf **denselben**
+und senden gleichzeitig 25 `UPDATE_USER`-Anfragen auf **denselben**
 Datensatz (Benutzer-ID 1).
 
 - **Ohne** Lock verschränken sich die Aktualisierungen, und der Datensatz
@@ -104,7 +104,7 @@ Datensatz (Benutzer-ID 1).
   (Lost Update bzw. „torn write").
 - **Mit** aktivem `WRITE_LOCK` läuft jede Aktualisierung als kritischer
   Abschnitt. Die Zugriffe werden serialisiert, sodass das abschließende
-  `GET_USER` einen in sich konsistenten Datensatz liefert   nie eine
+  `GET_USER` einen in sich konsistenten Datensatz liefert — nie eine
   Mischung beider Clients.
 
 Dasselbe Prinzip schützt den Kaufvorgang: Da `ADD_PURCHASE` ein
@@ -117,51 +117,58 @@ physischen Artikel daher nicht gleichzeitig erwerben (kein Überverkauf).
 gleichzeitiger Lesezugriffe.
 
 ## Modul und Klassenübersicht
-| Klasse                    | Aufgabe                                                                                                                                                                                           |
-|:--------------------------|:--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
-| **Artist**                | Sie erbt von der Klasse „User“. Sie repräsentiert Künstlerprofildaten und die vom Künstler angebotenen Produkte/Abonnementpakete.                                                                 |
-| **Subscriber**            | Sie erbt von der Klasse „User“. Sie enthält die für die Zustellung physischer Produkte notwendigen Versandadressinformationen und Abonnentendaten.                                                |
-| **ArtProduct**            | Es handelt sich um eine abstrakte Oberklasse (Basisklasse), die die gemeinsamen Attribute (ID, Titel, Preis) aller Produkte enthält.                                                              |
-| **Subscription**          | Dies ist die Geschäftslogikschicht, die die Beziehung zwischen einem Subscriber und einem Artist herstellt und das Duplikat Abonnement System verwaltet.                                          |
-| **User**                  | Es handelt sich um die Basisklasse für alle Benutzer im System. Sie enthält grundlegende Mitgliedsinformationen wie Name, E-Mail-Adresse und Passwort.                                            |
-| **Address**               | Repräsentiert eine Versandadresse eines Subscribers mit Straße, Stadt, Postleitzahl und Land.                                                                                                     |
-| **Dimensions**            | Wertobjekt für die Abmessungen physischer Produkte (Breite, Höhe, Tiefe).                                                                                                                         |
-| **PhysicalProduct**       | Sie erbt von der Klasse ArtProduct. Sie repräsentiert physische Verpackungen wie Postkarten, Aufkleber und Leinwände mit Attributen wie Gewicht, Größe, Stil, Produkttyp (Enum) und Lagerbestand. |
-| **DigitalProduct**        | Es erbt von der Klasse ArtProduct. Es repräsentiert digitale Kunstwerke mit Attributen wie Download Link, Dateigröße, Dateiformat, Kunststil und digitalem Produkttyp.                            |
-| **Purchase**              | Repräsentiert einen abgeschlossenen Kaufvorgang; verknüpft Käufer und Produkt und hält das Kaufdatum.                                                                                             |
-| **UserDAO**               | Kapselt CRUD Operationen für Benutzer, inkl. Authentifizierungs Logik.                                                                                                                            |
-| **ArtistDAO**             | Verwaltet die spezialisierten Daten und Details für Künstler.                                                                                                                                     |
-| **SubscriberDAO**         | Verwaltet die spezifischen Daten für Subscriber und deren Profile.                                                                                                                                |
-| **SubscriptionDAO**       | Realisiert relationale Abfragen für Abonnements und sorgt für Duplikatsvermeidung.                                                                                                                |
-| **ArtProductDAO**         | Basis CRUD für alle Produkttypen und deren relationale Zuweisungen.                                                                                                                               |
-| **PhysicalProductDAO**    | Verwaltet spezifische Details für physische Waren und Lagerbestände.                                                                                                                              |
-| **PurchaseDAO**           | Persistiert Kauftransaktionen; sichert die referenzielle Integrität über Fremdschlüssel (Käufer, Produkt) und liefert den generierten Schlüssel zurück.                                           |
-| **DigitalProductDAO**     | Verwaltet spezifische Daten für digitale Downloads und Links.                                                                                                                                     |
-| **AddressDAO**            | Verwaltet die CRUD Operationen für die Adressdaten der Subscriber.                                                                                                                                |
-| **DimensionsDAO**         | Kapselt die Datenbankzugriffe für physische Produktabmessungen.                                                                                                                                   |
-| **DatabaseConnection**    | Verwaltet den Verbindungsaufbau zur lokalen SQLite Datenbankdatei.                                                                                                                                |
-| **DatabaseLock**          | Zentraler `ReentrantLock` zur Synchronisation aller Schreibzugriffe und zur Vermeidung von Race Conditions.                                                                                       |
-| **ArtStyle**              | Enum für Kunststile: `REALISM`, `MINIMALISM`, `SURREALISM`, `FANTASY`, `CYBERPUNK`, `WHIMSICAL`.                                                                                                  |
-| **ProductType**           | Enum für physische Produkttypen: `CANVAS`, `PAPER`, `POSTCARD`, `STICKER`.                                                                                                                        |
-| **MediumType**            | Enum für verwendete Materialien: `OIL_PAINTING`, `CHARCHOAL`, `WATERCOLOR`, `PASTEL`, `PENCIL`.                                                                                                   |
-| **DigProductType**        | Enum für digitale Produkttypen: `POSTER`, `POSTCARD`, `STICKER`, `COMMISSIONED`, `WALLPAPER`.                                                                                                     |
-| **PasswordHasher**        | Utility Klasse für SHA-256 PasswortHashing und Verifikation.                                                                                                                                      |
-| **ConcurrencyTest**       | Prüft die Stabilität bei gleichzeitigem Zugriff mehrerer Clients (paralleles `PING` und `LOGIN`).                                                                                                 |
-| **RaceConditionTest**     | Simuliert parallele Änderungszugriffe auf denselben Datensatz, um die Wirksamkeit der Synchronisation zu validieren.                                                                              |
-| **ServerIntegrationTest** | Testet den vollständigen Request Response Zyklus der zentralen Geschäftslogik (Registrierung, Login, Produkte, Kauf, Abonnement).                                                                 |
-| **Client**                | Beispielhafter Einstiegspunkt; baut eine Verbindung auf, sendet eine feste Befehlssequenz und gibt die Antworten aus.                                                                             |
-| **ClientHandler**         | Verarbeitet die Anfragen einer Verbindung in einem eigenen Thread, sperrt Schreibbefehle über den `WRITE_LOCK` und delegiert an die DAOs                                                          |
-| **Command**               | Enum zur Definition aller unterstützten Netzwerkbefehle und Aktionen.                                                                                                                             |
-| **Response/Request**      | Kapseln die Netzwerk Datenpakete (`Command`+Nutzdaten bzw. `Status`+Nutzdaten) für eine standardisierte Client Server Kommunikation.                                                              |
-| **Server**                | Hauptkomponente; akzeptiert eingehende Socket Verbindungen und instanziiert pro Client einen `ClientHandler`.                                                                                     |
-| **ServerConnection**      | Hilfsklasse zur Kapselung der Socket Verbindung und der Objekt Serialisierung (Streams); vermeidet Deadlocks durch korrekte Stream Reihenfolge.                                                   |
-| **Status**                | Enum zur Übermittlung des Verarbeitungsergebnisses (`OK`, `ERROR`, `INVALID_ARGUMENT`, `INVALID_CREDENTIALS`, `NOT_FOUND`, `INTERNAL_ERROR`).                                                     |
-| **DTO-Klassen**           | Datenübertragungsobjekte (DTOs) für den serialisierten Datenaustausch zwischen Client und Server.                                                                                                 |
-| **Main**                  | Einstiegspunkt der Anwendung; initialisiert die DAOs und befüllt die Datenbank mit Beispieldaten (Seed).                                                                                          |
+| Klasse                                       | Aufgabe                                                                                                                                                                                                                                                        |
+|:---------------------------------------------|:---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| **Artist**                                   | Sie erbt von der Klasse „User“. Sie repräsentiert Künstlerprofildaten und die vom Künstler angebotenen Produkte/Abonnementpakete.                                                                                                                              |
+| **Subscriber**                               | Sie erbt von der Klasse „User“. Sie enthält die für die Zustellung physischer Produkte notwendigen Versandadressinformationen und Abonnentendaten.                                                                                                             |
+| **ArtProduct**                               | Es handelt sich um eine abstrakte Oberklasse (Basisklasse), die die gemeinsamen Attribute (ID, Titel, Preis) aller Produkte enthält.                                                                                                                           |
+| **Subscription**                             | Dies ist die Geschäftslogikschicht, die die Beziehung zwischen einem Subscriber und einem Artist herstellt und das Duplikat-Abonnement-System verwaltet.                                                                                                       |
+| **User**                                     | Es handelt sich um die Basisklasse für alle Benutzer im System. Sie enthält grundlegende Mitgliedsinformationen wie Name, E-Mail-Adresse und Passwort.                                                                                                         |
+| **Address**                                  | Repräsentiert eine Versandadresse eines Subscribers mit Straße, Stadt, Postleitzahl und Land.                                                                                                                                                                  |
+| **Dimensions**                               | Wertobjekt für die Abmessungen physischer Produkte (Breite, Höhe, Tiefe).                                                                                                                                                                                      |
+| **PhysicalProduct**                          | Sie erbt von der Klasse ArtProduct. Sie repräsentiert physische Verpackungen wie Postkarten, Aufkleber und Leinwände mit Attributen wie Gewicht, Größe, Stil, Produkttyp (Enum) und Lagerbestand.                                                              |
+| **DigitalProduct**                           | Es erbt von der Klasse ArtProduct. Es repräsentiert digitale Kunstwerke mit Attributen wie Download-Link, Dateigröße, Dateiformat, Kunststil und digitalem Produkttyp.                                                                                         |
+| **Purchase**                                 | Repräsentiert einen abgeschlossenen Kaufvorgang; verknüpft Käufer und Produkt und hält das Kaufdatum.                                                                                                                                                          |
+| **UserDAO**                                  | Kapselt CRUD-Operationen für Benutzer, inkl. Authentifizierungs-Logik.                                                                                                                                                                                         |
+| **ArtistDAO**                                | Verwaltet die spezialisierten Daten und Details für Künstler.                                                                                                                                                                                                  |
+| **SubscriberDAO**                            | Verwaltet die spezifischen Daten für Subscriber und deren Profile.                                                                                                                                                                                             |
+| **SubscriptionDAO**                          | Realisiert relationale Abfragen für Abonnements und sorgt für Duplikatsvermeidung.                                                                                                                                                                             |
+| **ArtProductDAO**                            | Tabellenlose Aggregat-Fassade über `physical_products` und `digital_products` (nur Lesen: führt beide Produktlisten zusammen für die generischen `GET_ART_PRODUCT`-Befehle).                                                                                   |
+| **PhysicalProductDAO**                       | Verwaltet spezifische Details für physische Waren und Lagerbestände.                                                                                                                                                                                           |
+| **PurchaseDAO**                              | Persistiert Käufe in der `purchases`-Tabelle (Verkaufsprotokoll) inkl. `product_type`; bietet `insertPurchase` und `getAllPurchases` für den Verkaufsbericht.                                                                                                  |
+| **DigitalProductDAO**                        | Verwaltet spezifische Daten für digitale Downloads und Links.                                                                                                                                                                                                  |
+| **AddressDAO**                               | Verwaltet die CRUD-Operationen für die Adressdaten der Subscriber.                                                                                                                                                                                             |
+| **DimensionsDAO**                            | Kapselt die Datenbankzugriffe für physische Produktabmessungen.                                                                                                                                                                                                |
+| **DatabaseConnection**                       | Verwaltet den Verbindungsaufbau zur lokalen SQLite-Datenbankdatei.                                                                                                                                                                                             |
+| **DatabaseLock**                             | Zentraler `ReentrantLock` zur Synchronisation aller Schreibzugriffe und zur Vermeidung von Race Conditions.                                                                                                                                                    |
+| **ArtStyle**                                 | Enum für Kunststile: `REALISM`, `MINIMALISM`, `SURREALISM`, `FANTASY`, `CYBERPUNK`, `WHIMSICAL`.                                                                                                                                                               |
+| **ProductType**                              | Enum für physische Produkttypen: `CANVAS`, `PAPER`, `POSTCARD`, `STICKER`.                                                                                                                                                                                     |
+| **MediumType**                               | Enum für verwendete Materialien: `OIL_PAINTING`, `CHARCHOAL`, `WATERCOLOR`, `PASTEL`, `PENCIL`.                                                                                                                                                                |
+| **DigProductType**                           | Enum für digitale Produkttypen: `POSTER`, `POSTCARD`, `STICKER`, `COMMISSIONED`, `WALLPAPER`.                                                                                                                                                                  |
+| **PasswordHasher**                           | Utility-Klasse für SHA-256 Passwort-Hashing und Verifikation.                                                                                                                                                                                                  |
+| **ConcurrencyTest**                          | Prüft die Stabilität bei gleichzeitigem Zugriff mehrerer Clients (paralleles `PING` und `LOGIN`).                                                                                                                                                              |
+| **RaceConditionTest**                        | Simuliert parallele Änderungszugriffe auf denselben Datensatz, um die Wirksamkeit der Synchronisation zu validieren.                                                                                                                                           |
+| **ServerIntegrationTest**                    | Testet den vollständigen Request-Response-Zyklus der zentralen Geschäftslogik (Registrierung, Login, Produkte, Kauf, Abonnement).                                                                                                                              |
+| **Client**                                   | Beispielhafter Einstiegspunkt; baut eine Verbindung auf, sendet eine feste Befehlssequenz und gibt die Antworten aus.                                                                                                                                          |
+| **ClientHandler**                            | Verarbeitet die Anfragen einer Verbindung in einem eigenen Thread, sperrt Schreibbefehle über den `WRITE_LOCK` und delegiert an die DAOs                                                                                                                       |
+| **Command**                                  | Enum aller Netzwerkbefehle (u. a. `LOGIN`, `REGISTER`, `ADD_PHYSICAL_PRODUCT`, `ADD_DIGITAL_PRODUCT`, `ADD_PURCHASE`, `ADD_SUBSCRIPTION`, `REMOVE_SUBSCRIPTION`, `GET_SALES_LOGS_BY_ARTIST`); jeder Befehl markiert per Flag, ob er den Schreib-Lock benötigt. |
+| **Response/Request**                         | Kapseln die Netzwerk-Datenpakete (`Command`+Nutzdaten bzw. `Status`+Nutzdaten) für eine standardisierte Client-Server-Kommunikation.                                                                                                                           |
+| **Server**                                   | Hauptkomponente; akzeptiert eingehende Socket Verbindungen und instanziiert pro Client einen `ClientHandler`.                                                                                                                                                  |
+| **ServerConnection**                         | Hilfsklasse zur Kapselung der Socket-Verbindung und der Objekt-Serialisierung (Streams); vermeidet Deadlocks durch korrekte Stream-Reihenfolge.                                                                                                                |
+| **Status**                                   | Enum zur Übermittlung des Verarbeitungsergebnisses (`OK`, `ERROR`, `INVALID_ARGUMENT`, `INVALID_CREDENTIALS`, `NOT_FOUND`, `INTERNAL_ERROR`).                                                                                                                  |
+| **DTO-Klassen**                              | Datenübertragungsobjekte (DTOs) für den serialisierten Datenaustausch zwischen Client und Server.                                                                                                                                                              |
+| **Main**                                     | JavaFX-Einstiegspunkt (`Application`); baut den `Client` auf und zeigt Login-/Register-Fenster. `showLoginScreen` wird auch beim Logout wiederverwendet.                                                                                                       |
+| **SalesLogDTO**                              | DTO für eine Verkaufsberichtszeile: Käufername, Produktname, Typ und Kaufdatum.                                                                                                                                                                                |
+| **PurchaseDTO**                              | DTO für einen Kauf (`buyerId`, `productId`, `productType`).                                                                                                                                                                                                    |
+| **LoginController**                          | MVC-Controller: verarbeitet Login (via `Task`), öffnet das Dashboard und den Logout-Fluss.                                                                                                                                                                     |
+| **RegisterController**                       | MVC-Controller: verarbeitet die Registrierung neuer Benutzer.                                                                                                                                                                                                  |
+| **DashboardController**                      | MVC-Controller: baut das rollenbasierte Dashboard (Artist/Subscriber), führt alle Server-Aufrufe über `Client` in einem `Task` aus (UI bleibt responsiv).                                                                                                      |
+| **LoginView / RegisterView / DashboardView** | MVC-View-Schicht.                                                                                                                                                                                                                                              |
+| **Styles**                                   | Zentrale Theme-Klasse: Pastell-Farbpalette (Puderrosa/Salbeigrün) und wiederverwendbare Style-Helfer für alle Screens.                                                                                                                                         |
 
 ## Datenstruktur
 
-Die Anwendung verwendet eine lokale SQLite Datenbank, um Projektdaten dauerhaft zu speichern. Tabellenstrukturen, Schlüssel und relationale Links sind wie folgt strukturiert:
+Die Anwendung verwendet eine lokale SQLite-Datenbank, um Projektdaten dauerhaft zu speichern. Tabellenstrukturen, Schlüssel und relationale Links sind wie folgt strukturiert:
 
 ### 1. Existierende Tabellen und gespeicherte Informationen
 
@@ -171,7 +178,7 @@ Die Anwendung verwendet eine lokale SQLite Datenbank, um Projektdaten dauerhaft 
   * `lname`: Nachname (TEXT, NOT NULL)
   * `username`: Eindeutiger Benutzername für Authentifizierung (TEXT, UNIQUE, NOT NULL)
   * `password_hash`: Passwort (TEXT, NOT NULL)
-  * `email`: E-Mail Adresse (TEXT, NOT NULL)
+  * `email`: E-Mail-Adresse (TEXT, NOT NULL)
   * `role`: Benutzertyp wie 'ARTIST' oder 'SUBSCRIBER' (TEXT)
   * `address`: Abonnenten Adresse (TEXT)
   * `subscriber_point`: Punkte von Abonnenten (INTEGER)
@@ -182,7 +189,10 @@ Die Anwendung verwendet eine lokale SQLite Datenbank, um Projektdaten dauerhaft 
 
 * **`subscriber_details`** (Spezifische Profildaten für Abonnenten)
   * `user_id`: Primary Key & Foreign Key (INTEGER, verweist auf `users(id)`)
-  * `address_text`: Versandadresse des Abonnenten als Freitext (TEXT)
+  * `street`: Straße und Hausnummer (TEXT)
+  * `city`: Stadt (TEXT)
+  * `zip_code`: Postleitzahl (TEXT)
+  * `country`: Land (TEXT)
   * `subscriber_point`: Punkte von Abonnenten (INTEGER)
 
 * **`addresses`** (Verwaltung der Versandinformationen)
@@ -192,12 +202,6 @@ Die Anwendung verwendet eine lokale SQLite Datenbank, um Projektdaten dauerhaft 
   * `zip_code`: Postleitzahl (TEXT)
   * `country`: Land (TEXT)
 
-* **`art_products`** (Basisinformationen aller Kunstprodukte)
-  * `id`: Primary Key (INTEGER, AUTOINCREMENT)
-  * `name`: Titel des Werks (TEXT, NOT NULL)
-  * `description`: Beschreibung (TEXT)
-  * `base_price`: Basispreis (REAL, NOT NULL)
-  * `artist_id`: Künstler-Referenz (TEXT, NOT NULL, verweist konzeptionell auf `users(id)`)
 
 * **`subscriptions`** (Beziehung zwischen Abonnenten und Künstlern)
   * `id`: Primary Key (INTEGER, AUTOINCREMENT)
@@ -213,27 +217,36 @@ Die Anwendung verwendet eine lokale SQLite Datenbank, um Projektdaten dauerhaft 
   * `height`: Höhe des Produkts (REAL)
   * `depth`: Tiefe des Produkts (REAL)
   
-* **`digital_products`** (Spezifische Daten für digitale Produkte)
-  * `product_id`: Primary Key & Foreign Key (INTEGER, verweist auf `art_products(id)`)
+* **`digital_products`** (Eigenständige Tabelle für digitale Produkte)
+  * `id`: Primary Key (INTEGER, AUTOINCREMENT)
+  * `name`: Titel des Werks (TEXT, NOT NULL)
+  * `description`: Beschreibung (TEXT)
+  * `base_price`: Basispreis (REAL, NOT NULL)
+  * `artist_id`: Foreign Key (INTEGER, verweist auf `users(id)`)
   * `style`: Kunststil des digitalen Werks (TEXT)
   * `download_url`: Sicherer Link zum Herunterladen (TEXT)
   * `file_size_mb`: Dateigröße in Megabyte (REAL)
   * `file_extension`: Dateiformat (TEXT)
   * `dig_product_type`: Produkttyp wie 'POSTER', 'POSTCARD' (TEXT)
   
-* **`physical_products`** (Spezifische Daten für physische Produkte)
-  * `product_id`: Primary Key & Foreign Key (INTEGER, verweist auf `art_products(id)`)
+* **`physical_products`** (Eigenständige Tabelle für physische Produkte)
+  * `id`: Primary Key (INTEGER, AUTOINCREMENT)
+  * `name`: Titel des Werks (TEXT, NOT NULL)
+  * `description`: Beschreibung (TEXT)
+  * `base_price`: Basispreis (REAL, NOT NULL)
+  * `artist_id`: Foreign Key (INTEGER, verweist auf `users(id)`)
   * `style`: Stil des physischen Werks (TEXT)
-  * `dimensions`: Dimensions (TEXT)
+  * `dimensions_id`: Foreign Key (INTEGER, verweist auf `dimensions(id)`)
   * `weight`: Gewicht des Produkts für den Versand (REAL)
   * `stock`: Aktueller Lagerbestand (INTEGER)
   * `medium`: Verwendetes Material wie 'PASTEL', 'OIL_PAINTING', 'CHARCOAL' (TEXT) 
   * `product_type`: Produkttyp als Enum wie 'POSTCARD', 'STICKER', 'CANVAS', 'PAPER' (TEXT)
 
-* **`purchases`** (Erfasste Kauftransaktionen)
+* **`purchases`** (Erfasste Kauftransaktionen – dient zugleich als Verkaufsprotokoll)
   * `id`: Primary Key (INTEGER, AUTOINCREMENT)
   * `buyer_id`: Foreign Key (INTEGER, verweist auf `users(id)`)
-  * `product_id`: Foreign Key (INTEGER, verweist auf `art_products(id)`)
+  * `product_id`: Produkt-ID (INTEGER) – zeigt je nach `product_type` auf `physical_products(id)` oder `digital_products(id)`
+  * `product_type`: 'PHYSICAL' oder 'DIGITAL' – löst die ID-Mehrdeutigkeit auf (TEXT, NOT NULL)
   * `purchase_date`: Kaufdatum (TEXT)
 
 ---
@@ -242,8 +255,8 @@ Die Anwendung verwendet eine lokale SQLite Datenbank, um Projektdaten dauerhaft 
 
 Die folgenden Beziehungen sind im System definiert. 
 
-* **`users` zu `art_products` (1:n)**
-  * Ein Künstler (`ARTIST`) kann mehrere Kunstprodukte erstellen. Die Zuordnung erfolgt über die Spalte `artist_id` in `art_products`. 
+* **`users` (als Artist) zu `physical_products` / `digital_products` (1:n)**
+  * Ein Künstler (`ARTIST`) kann mehrere physische und digitale Produkte erstellen. Die Zuordnung erfolgt über die Spalte `artist_id` in beiden Produkttabellen.
 * **`users` (als Subscriber) zu `subscriptions` (1:n)**
   * Ein Abonnent (`SUBSCRIBER`) kann mehrere Abonnements bei unterschiedlichen Künstlern abschließen. Jeder Datensatz in `subscriptions` verweist über `subscriber_id` auf genau einen Benutzer mit der Rolle 'SUBSCRIBER'.
 
@@ -253,12 +266,50 @@ Die folgenden Beziehungen sind im System definiert.
 * **`users` zu `artist_details` (1:1)**
   *  Spezialisierung (Vererbung auf Datenbankebene). Für jeden Benutzer mit der Rolle 'ARTIST' existiert genau ein Eintrag in `artist_details`.
 
-* **`users` zu `subscriber_details` (1:1)**
-  *  Analog zur Künstlerspezialisierung enthält diese Tabelle die erweiterten Profildaten für Abonnenten (Adresstext, Bonuspunkte).
+* **`physical_products` / `digital_products` zu `dimensions` (n:1)**
+  *  Jedes physische Produkt verweist über `dimensions_id` auf einen Abmessungssatz.
 
-* **`art_products` zu `physical_products` (1:1)**
-  *  Spezialisierung der abstrakten Basisklasse für physische Güter.
-* **`art_products` zu `digital_products` (1:1)**
-  *  Spezialisierung der abstrakten Basisklasse für digitale Güter. 
+
+## GUI und MVC
+
+Die Oberfläche ist mit **JavaFX** umgesetzt und folgt dem **Model-View-Controller**-Muster:
+
+- **View** (`gui/`): `LoginView`, `RegisterView`, `DashboardView` — reines UI.
+- **Controller** (`controller/`): `LoginController`, `RegisterController`, `DashboardController` —
+  verarbeiten Benutzeraktionen und sprechen den Server ausschließlich über die `Client`-Klasse an.
+- **Model / Netzwerk**: die bestehenden `model`-Klassen und die DTOs der Netzwerkschicht.
+
+**Rollenbasiertes Dashboard.** Nach dem Login prüft der `DashboardController` per `instanceof`,
+ob ein `ArtistDTO` oder `SubscriberDTO` vorliegt, und baut die passende Ansicht:
+- *Artist*: eigene Produkte, Produkt hinzufügen (Dialog), Follower-Liste und ein
+  **Verkaufsbericht** (`TableView`).
+- *Subscriber*: Abonnements (mit „Unsubscribe"), Kunstwerke abonnierter Künstler (mit „Buy" und
+  Bestandslogik) sowie „Discover" mit dynamischem Button (Abonnieren / Werke ansehen).
+
+**Responsive Oberfläche.** Alle Serveraufrufe laufen über `javafx.concurrent.Task` auf einem
+Single-Thread-Executor; währenddessen zeigt die UI einen Spinner und bleibt bedienbar. Ergebnisse
+werden per `Platform.runLater` auf den FX-Thread zurückgegeben.
+
+**Fehlerbehandlung.** Verbindungs- oder Eingabefehler werden dem Benutzer über einen
+`Alert`-Dialog verständlich angezeigt.
+
+**Einheitliches Design.** Die Klasse `Styles` bündelt die Pastell-Farbpalette (Puderrosa +
+Salbeigrün) und wiederverwendbare Style-Helfer (`applyModernButton`, `applyModernField`, `header`,
+`centeredCard`, `styleAlert`), sodass alle Screens dieselbe Designsprache teilen.
+
+## Änderungen seit der letzten Abgabe
+
+- **Netzwerkschicht :** Client-Server-Architektur über **TCP-Sockets** mit typisiertem
+  `Request`/`Response`-Protokoll, `Command`/`Status`-Enums und DTOs; pro Verbindung ein eigener
+  `ClientHandler`-Thread; Schreibzugriffe über `DatabaseLock` (`ReentrantLock`) serialisiert.
+- **Datenbank-Refactoring:** Tabelle `art_products` entfernt; die gemeinsamen Spalten wurden in
+  `physical_products` und `digital_products` verlagert (eigenständige Tabellen mit eigener `id`).
+- **Neue Geschäftslogik:** Kauf mit Bestandsverwaltung (`stock`-Prüfung + Dekrement), Abonnement
+  inkl. Kündigung, Verkaufsbericht (`GET_SALES_LOGS_BY_ARTIST`).
+- **GUI + MVC :** JavaFX-Oberfläche, MVC-Trennung, responsive `Task`-Ausführung und ein
+  zentrales Pastell-Theme (`Styles`).
+- **Fehlerbehebungen:** Schema von `subscriber_details` (vier Adressspalten), robuste
+  `getAllSubscriptions`, fehlgeschlagene Registrierung wird jetzt als
+  Fehler gemeldet, `purchases` um `product_type` erweitert.
 
 

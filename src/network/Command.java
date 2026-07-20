@@ -50,7 +50,8 @@ public enum Command {
     UPDATE_USER(true),
     REMOVE_USER(true),
     GET_ALL_USERS(false),
-    ADD_PURCHASE(true);
+    ADD_PURCHASE(true),
+    GET_SALES_LOGS_BY_ARTIST(false);
 
     private final boolean requiresLock;
 

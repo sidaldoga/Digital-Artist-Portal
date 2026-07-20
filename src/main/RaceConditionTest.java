@@ -15,14 +15,13 @@ public class RaceConditionTest {
                 for (int i = 0; i < ITERATIONS; i++) {
                     SubscriberDTO dto = new SubscriberDTO(
                             1, who, "Iteration" + i, "race_user",
-                            who + "@mail.com", "SUBSCRIBER", i, null);
+                            who + "@mail.com", "SUBSCRIBER", i, null,"12345");
                     Response r = conn.send(Command.UPDATE_USER, dto);
                     System.out.println(who + " UPDATE_USER #" + i + " -> " + r);
                 }
             } catch (Exception e) {
                 e.printStackTrace();
-            }
-        };
+            }        };
 
         Thread t1 = new Thread(updateTask, "Client-A");
         Thread t2 = new Thread(updateTask, "Client-B");

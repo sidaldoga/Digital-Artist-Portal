@@ -16,11 +16,11 @@ public class Response implements Serializable {
     }
 
     public static Response ok(Object payload) {
-        return new Response(Status.OK, null, payload);
+        return new Response(Status.OK, "Success", payload);
     }
 
     public static Response ok() {
-        return new Response(Status.OK, null, null);
+        return new Response(Status.OK, "Success", null);
     }
 
     public static Response error(Status status, String message) {

@@ -11,13 +11,14 @@ public class UserDTO implements Serializable {
     private String role;
     private String password;
 
-    public UserDTO(int id, String fname, String lname, String username, String email, String role) {
+    public UserDTO(int id, String fname, String lname, String username, String email, String role, String password) {
         this.id = id;
         this.fname = fname;
         this.lname = lname;
         this.username = username;
         this.email = email;
         this.role = role;
+        this.password = password;
     }
 
     public int getId() {
@@ -44,17 +45,17 @@ public class UserDTO implements Serializable {
         return role;
     }
 
-    public String getPassword() {
-        return password;
-    }
-
     public void setPassword(String password) {
         this.password = password;
+    }
+
+    public String getPassword() {
+        return password;
     }
 
     @Override
     public String toString() {
         return "User{id=" + id + ", fname='" + fname + "', lname='" + lname
-                + "', username='" + username + "', email='" + email + "', role='" + role + "'}";
+                + "', username='" + username + "', email='" + email + "', role='" + role + "', password='" + password + "}";
     }
 }
